@@ -1,0 +1,5 @@
+grant codeBase "file:<the_path>/comp512/project/server/" {
+    permission java.security.AllPermission;
+};
+
+
