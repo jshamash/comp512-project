@@ -1,5 +1,9 @@
 package ResInterface;
 
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.Vector;
+
 
 /** 
  * Simplified version from CSE 593 Univ. of Washington
