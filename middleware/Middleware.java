@@ -1,4 +1,3 @@
-
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -14,8 +13,9 @@ public class Middleware implements ResourceManager {
 	static ResourceManager flightRM = null;
 	static ResourceManager carRM = null;
 	static ResourceManager roomRM = null;
-	
-	public Middleware() throws RemoteException {}
+
+	public Middleware() throws RemoteException {
+	}
 
 	public static void main(String args[]) {
 		String flightServer, carServer, roomServer;
@@ -39,7 +39,8 @@ public class Middleware implements ResourceManager {
 
 		try {
 			// get a reference to the flight rmiregistry
-			Registry registry = LocateRegistry.getRegistry(flightServer, flightPort);
+			Registry registry = LocateRegistry.getRegistry(flightServer,
+					flightPort);
 			// get the proxy and the remote reference by rmiregistry lookup
 			flightRM = (ResourceManager) registry
 					.lookup("Group1ResourceManager");
@@ -60,7 +61,7 @@ public class Middleware implements ResourceManager {
 			} else {
 				System.out.println("Unsuccessful");
 			}
-			
+
 			// get a reference to the room rmiregistry
 			registry = LocateRegistry.getRegistry(roomServer, roomPort);
 			// get the proxy and the remote reference by rmiregistry lookup
@@ -71,7 +72,7 @@ public class Middleware implements ResourceManager {
 			} else {
 				System.out.println("Unsuccessful");
 			}
-			
+
 			// At this point we are a client to the three RM servers.
 			// Now, establish server connection to serve client(s).
 			Middleware obj = new Middleware();
@@ -88,7 +89,7 @@ public class Middleware implements ResourceManager {
 			System.err.println("Middleware exception: " + e.toString());
 			e.printStackTrace();
 		}
-		
+
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
@@ -96,17 +97,23 @@ public class Middleware implements ResourceManager {
 
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
-		return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
+		synchronized (flightRM) {
+			return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
+		}
 	}
 
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException {
-		return carRM.addCars(id, location, numCars, price);
+		synchronized (carRM) {
+			return carRM.addCars(id, location, numCars, price);
+		}
 	}
 
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException {
-		return roomRM.addRooms(id, location, numRooms, price);
+		synchronized (roomRM) {
+			return roomRM.addRooms(id, location, numRooms, price);
+		}
 	}
 
 	public int newCustomer(int id) throws RemoteException {
@@ -120,7 +127,9 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
-		return flightRM.deleteFlight(id, flightNum);
+		synchronized (flightRM) {
+			return flightRM.deleteFlight(id, flightNum);
+		}
 	}
 
 	public boolean deleteCars(int id, String location) throws RemoteException {
