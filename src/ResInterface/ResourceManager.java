@@ -1,10 +1,6 @@
 package ResInterface;
 
 
-import java.rmi.Remote;
-import java.rmi.RemoteException;
-
-import java.util.*;
 /** 
  * Simplified version from CSE 593 Univ. of Washington
  *

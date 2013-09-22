@@ -1,49 +1,75 @@
 import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-import java.lang.String;
 
-import ResImpl.ResourceManagerImpl;
 import ResInterface.ResourceManager;
 
-
 public class Middleware {
-	
-	//Jake, look! THis is the main method!
+
+	static ResourceManager flightRM = null;
+	static ResourceManager carRM = null;
+	static ResourceManager roomRM = null;
+
 	public static void main(String args[]) {
-        // Figure out where server is running
-        String server = "teaching";
-        int port = 6969;
+		String flightServer, carServer, roomServer;
+		int flightPort, carPort, roomPort;
 
-        if (args.length == 1) {
-            server = server + ":" + args[0];
-            port = Integer.parseInt(args[0]);
-        } else if (args.length != 0 &&  args.length != 1) {
-            System.err.println ("Wrong usage");
-            System.out.println("Usage: java ResImpl.ResourceManagerImpl [port]");
-            System.exit(1);
-        }
+		if (args.length != 6) {
+			System.err.println("Wrong usage");
+			System.out
+					.println("Usage: java ResImpl.ResourceManagerImpl [flightServer] [flightPort] "
+							+ "[carServer] [carPort] [roomServer] [roomPort]");
+			System.exit(1);
+		}
 
-        try {
-            // create a new Server object
-            ResourceManagerImpl obj = new ResourceManagerImpl();
-            // dynamically generate the stub (client proxy)
-            ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
+		flightServer = args[0];
+		flightPort = Integer.parseInt(args[1]);
+		carServer = args[2];
+		carPort = Integer.parseInt(args[3]);
+		roomServer = args[4];
+		roomPort = Integer.parseInt(args[5]);
 
-            // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(port);
-            registry.rebind("MyGroupResourceManager", rm);
+		try {
+			// get a reference to the flight rmiregistry
+			Registry registry = LocateRegistry.getRegistry(flightServer, flightPort);
+			// get the proxy and the remote reference by rmiregistry lookup
+			flightRM = (ResourceManager) registry
+					.lookup("Group1ResourceManager");
+			if (flightRM != null) {
+				System.out.println("Successful");
+				System.out.println("Connected to Flight RM");
+			} else {
+				System.out.println("Unsuccessful");
+			}
 
-            System.err.println("Server ready");
-        } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
-            e.printStackTrace();
-        }
-
-        // Create and install a security manager
-        if (System.getSecurityManager() == null) {
-            System.setSecurityManager(new RMISecurityManager());
-        }
-    }
+			// get a reference to the car rmiregistry
+			registry = LocateRegistry.getRegistry(carServer, carPort);
+			// get the proxy and the remote reference by rmiregistry lookup
+			carRM = (ResourceManager) registry.lookup("Group1ResourceManager");
+			if (carRM != null) {
+				System.out.println("Successful");
+				System.out.println("Connected to Car RM");
+			} else {
+				System.out.println("Unsuccessful");
+			}
+			
+			// get a reference to the room rmiregistry
+			registry = LocateRegistry.getRegistry(roomServer, roomPort);
+			// get the proxy and the remote reference by rmiregistry lookup
+			roomRM = (ResourceManager) registry.lookup("Group1ResourceManager");
+			if (roomRM != null) {
+				System.out.println("Successful");
+				System.out.println("Connected to Room RM");
+			} else {
+				System.out.println("Unsuccessful");
+			}
+		} catch (Exception e) {
+			System.err.println("Middleware exception: " + e.toString());
+			e.printStackTrace();
+		}
+		
+		if (System.getSecurityManager() == null) {
+			System.setSecurityManager(new RMISecurityManager());
+		}
+	}
 }

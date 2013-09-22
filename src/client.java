@@ -1,9 +1,14 @@
-import java.rmi.*;
-import ResInterface.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.*;
-import java.io.*;
+import java.util.StringTokenizer;
+import java.util.Vector;
+import java.rmi.RemoteException;
+
+import ResInterface.ResourceManager;
 
 public class client {
 	static String message = "blank";
@@ -43,7 +48,7 @@ public class client {
 			// get a reference to the rmiregistry
 			Registry registry = LocateRegistry.getRegistry(server, port);
 			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (ResourceManager) registry.lookup("MyGroupResourceManager");
+			rm = (ResourceManager) registry.lookup("Group1ResourceManager");
 			if (rm != null) {
 				System.out.println("Successful");
 				System.out.println("Connected to RM");
