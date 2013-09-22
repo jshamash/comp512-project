@@ -96,20 +96,17 @@ public class Middleware implements ResourceManager {
 
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
 	}
 
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return carRM.addCars(id, location, numCars, price);
 	}
 
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return roomRM.addRooms(id, location, numRooms, price);
 	}
 
 	public int newCustomer(int id) throws RemoteException {
@@ -123,18 +120,15 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return flightRM.deleteFlight(id, flightNum);
 	}
 
 	public boolean deleteCars(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return carRM.deleteCars(id, location);
 	}
 
 	public boolean deleteRooms(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return roomRM.deleteRooms(id, location);
 	}
 
 	public boolean deleteCustomer(int id, int customer) throws RemoteException {
@@ -143,18 +137,15 @@ public class Middleware implements ResourceManager {
 	}
 
 	public int queryFlight(int id, int flightNumber) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return flightRM.queryFlight(id, flightNumber);
 	}
 
 	public int queryCars(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return carRM.queryCars(id, location);
 	}
 
 	public int queryRooms(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return roomRM.queryRooms(id, location);
 	}
 
 	public String queryCustomerInfo(int id, int customer)
@@ -165,36 +156,30 @@ public class Middleware implements ResourceManager {
 
 	public int queryFlightPrice(int id, int flightNumber)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return flightRM.queryFlightPrice(id, flightNumber);
 	}
 
 	public int queryCarsPrice(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return carRM.queryCarsPrice(id, location);
 	}
 
 	public int queryRoomsPrice(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		return roomRM.queryRoomsPrice(id, location);
 	}
 
 	public boolean reserveFlight(int id, int customer, int flightNumber)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return flightRM.reserveFlight(id, customer, flightNumber);
 	}
 
 	public boolean reserveCar(int id, int customer, String location)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return carRM.reserveCar(id, customer, location);
 	}
 
 	public boolean reserveRoom(int id, int customer, String locationd)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return roomRM.reserveRoom(id, customer, locationd);
 	}
 
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
