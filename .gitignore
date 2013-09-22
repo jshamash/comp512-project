@@ -8,3 +8,6 @@
 bin/
 .settings/
 .classpath
+client/client.policy
+server/server.policy
+middleware/middleware.policy
