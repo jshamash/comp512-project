@@ -133,11 +133,15 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean deleteCars(int id, String location) throws RemoteException {
-		return carRM.deleteCars(id, location);
+		synchronized (carRM) {
+			return carRM.deleteCars(id, location);
+		}
 	}
 
 	public boolean deleteRooms(int id, String location) throws RemoteException {
-		return roomRM.deleteRooms(id, location);
+		synchronized (roomRM) {
+			return roomRM.deleteRooms(id, location);
+		}
 	}
 
 	public boolean deleteCustomer(int id, int customer) throws RemoteException {
@@ -146,15 +150,21 @@ public class Middleware implements ResourceManager {
 	}
 
 	public int queryFlight(int id, int flightNumber) throws RemoteException {
-		return flightRM.queryFlight(id, flightNumber);
+		synchronized (flightRM) {
+			return flightRM.queryFlight(id, flightNumber);
+		}
 	}
 
 	public int queryCars(int id, String location) throws RemoteException {
-		return carRM.queryCars(id, location);
+		synchronized (carRM) {
+			return carRM.queryCars(id, location);
+		}
 	}
 
 	public int queryRooms(int id, String location) throws RemoteException {
-		return roomRM.queryRooms(id, location);
+		synchronized (roomRM) {
+			return roomRM.queryRooms(id, location);
+		}
 	}
 
 	public String queryCustomerInfo(int id, int customer)
@@ -165,30 +175,42 @@ public class Middleware implements ResourceManager {
 
 	public int queryFlightPrice(int id, int flightNumber)
 			throws RemoteException {
-		return flightRM.queryFlightPrice(id, flightNumber);
+		synchronized (flightRM) {
+			return flightRM.queryFlightPrice(id, flightNumber);
+		}
 	}
 
 	public int queryCarsPrice(int id, String location) throws RemoteException {
-		return carRM.queryCarsPrice(id, location);
+		synchronized (carRM) {
+			return carRM.queryCarsPrice(id, location);
+		}
 	}
 
 	public int queryRoomsPrice(int id, String location) throws RemoteException {
-		return roomRM.queryRoomsPrice(id, location);
+		synchronized (roomRM) {
+			return roomRM.queryRoomsPrice(id, location);
+		}
 	}
 
 	public boolean reserveFlight(int id, int customer, int flightNumber)
 			throws RemoteException {
-		return flightRM.reserveFlight(id, customer, flightNumber);
+		synchronized (flightRM) {
+			return flightRM.reserveFlight(id, customer, flightNumber);
+		}
 	}
 
 	public boolean reserveCar(int id, int customer, String location)
 			throws RemoteException {
-		return carRM.reserveCar(id, customer, location);
+		synchronized (carRM) {
+			return carRM.reserveCar(id, customer, location);
+		}
 	}
 
 	public boolean reserveRoom(int id, int customer, String locationd)
 			throws RemoteException {
-		return roomRM.reserveRoom(id, customer, locationd);
+		synchronized (roomRM) {
+			return roomRM.reserveRoom(id, customer, locationd);
+		}
 	}
 
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
