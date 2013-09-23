@@ -361,33 +361,62 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
+	/**
+	 * Note: items are reserved in this order: flight1, ..., flight n, car,
+	 * room. If any one of these fails, all previous reservations along the
+	 * chain are left as is. I.e. nothing is undone upon failure.
+	 * 
+	 * @see ResInterface.ResourceManager#reserveItinerary(int, int,
+	 *      java.util.Vector, java.lang.String, boolean, boolean)
+	 */
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
 			String location, boolean car, boolean room) throws RemoteException {
 
 		Trace.info("MW::reserveItinerary(" + id + ", " + customer + ", "
 				+ flightNumbers + ", " + location + ", " + car + ", " + room
 				+ ") was called");
-		
+
 		// Book the flights.
 		for (Object flightNumber : flightNumbers) {
 			// Ugly cast... not *my* decision to design things this way, lol
-			if (!reserveFlight(id, customer, Integer.parseInt((String) flightNumber)))
+			if (!reserveFlight(id, customer,
+					Integer.parseInt((String) flightNumber))) {
+				Trace.warn("MW::reserveItinerary failed, could not reserve flight "
+						+ flightNumber);
 				return false; // Flight couldn't be reserved
-		}
-		
-		if (car) {
-			// Try to reserve the car
-			if(!reserveCar(id, customer, location)) {
-				return false;
+			}
+			else {
+				Trace.info("MW::reserveItinerary:: reserved flight "
+						+ flightNumber);
 			}
 		}
-		
+
+		if (car) {
+			// Try to reserve the car
+			if (!reserveCar(id, customer, location)) {
+				Trace.warn("MW::reserveItinerary failed, could not reserve car at location "
+						+ location);
+				return false;
+			}
+			else {
+				Trace.info("MW::reserveItinerary:: reserved car at location "
+						+ location);
+			}
+		}
+
 		if (room) {
 			// Try to reserve the room
-			if (!reserveRoom(id, customer, location))
+			if (!reserveRoom(id, customer, location)) {
+				Trace.warn("MW::reserveItinerary failed, could not reserve room at location "
+						+ location);
 				return false;
+			}
+			else {
+				Trace.info("MW::reserveItinerary:: reserved room at location "
+						+ location);
+			}
 		}
-		
+
 		// Everything worked!
 		return true;
 	}
