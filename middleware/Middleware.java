@@ -15,7 +15,6 @@ import ResImpl.RMHashtable;
 import ResImpl.RMItem;
 import ResImpl.ReservableItem;
 import ResImpl.ReservedItem;
-import ResImpl.ResourceManagerImpl;
 import ResImpl.Trace;
 import ResInterface.ResourceManager;
 
@@ -37,7 +36,7 @@ public class Middleware implements ResourceManager {
 		if (args.length != 7) {
 			System.err.println("Wrong usage");
 			System.out
-					.println("Usage: java ResImpl.ResourceManagerImpl [flightServer] [flightPort] "
+					.println("Usage: java Middleware [flightServer] [flightPort] "
 							+ "[carServer] [carPort] [roomServer] [roomPort] [RMI port]");
 			System.exit(1);
 		}
@@ -371,9 +370,8 @@ public class Middleware implements ResourceManager {
 		
 		// Book the flights.
 		for (Object flightNumber : flightNumbers) {
-			// Must cast to integer because someone felt it would be a good idea
-			// not to parameterize Vector
-			if (!reserveFlight(id, customer, (Integer) flightNumber))
+			// Ugly cast... not *my* decision to design things this way, lol
+			if (!reserveFlight(id, customer, Integer.parseInt((String) flightNumber)))
 				return false; // Flight couldn't be reserved
 		}
 		
