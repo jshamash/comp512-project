@@ -1,11 +1,9 @@
 comp512-project
 ===============
 
-Example setup
-=============
+## Example setup
 
-PREPARING CODE
---------------
+### PREPARING CODE
 
 ```
 cd comp512/comp512-project
@@ -14,8 +12,7 @@ javac server/*/*.java middleware/Middleware.java client/client.java
 
 ```
 
-SERVER (lab2-1, lab2-2, lab2-3)
--------------------------------
+### SERVER (lab2-1, lab2-2, lab2-3)
 
 NOTE: in this case each RM is run on a different machine.
 
@@ -30,8 +27,7 @@ java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/home/
 java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/home/2010/jshama1/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl 6963 &
 ```
 
-MIDDLEWARE (lab2-4)
--------------------
+### MIDDLEWARE (lab2-4)
 
 ```
 cd middleware
@@ -40,8 +36,7 @@ export CLASSPATH="/home/2010/jshama1/comp512/comp512-project/server/"
 java  -Djava.security.policy=middleware.policy -classpath .:../server Middleware lab2-1 6961 lab2-2 6962 lab2-3 6963 6969
 ```
 
-CLIENT (teaching)
------------------
+### CLIENT (teaching)
 
 ```
 cd client
