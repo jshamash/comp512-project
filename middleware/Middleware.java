@@ -363,9 +363,35 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
-			String location, boolean Car, boolean Room) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+			String location, boolean car, boolean room) throws RemoteException {
+
+		Trace.info("MW::reserveItinerary(" + id + ", " + customer + ", "
+				+ flightNumbers + ", " + location + ", " + car + ", " + room
+				+ ") was called");
+		
+		// Book the flights.
+		for (Object flightNumber : flightNumbers) {
+			// Must cast to integer because someone felt it would be a good idea
+			// not to parameterize Vector
+			if (!reserveFlight(id, customer, (Integer) flightNumber))
+				return false; // Flight couldn't be reserved
+		}
+		
+		if (car) {
+			// Try to reserve the car
+			if(!reserveCar(id, customer, location)) {
+				return false;
+			}
+		}
+		
+		if (room) {
+			// Try to reserve the room
+			if (!reserveRoom(id, customer, location))
+				return false;
+		}
+		
+		// Everything worked!
+		return true;
 	}
 
 }
