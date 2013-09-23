@@ -137,13 +137,6 @@ public class ResourceManagerImpl implements ResourceManager {
 			String location) {
 		Trace.info("RM::reserveItem( " + id + ", customer=" + customerID + ", "
 				+ key + ", " + location + " ) called");
-		// Read customer object if it exists (and read lock it)
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::reserveCar( " + id + ", " + customerID + ", " + key
-					+ ", " + location + ")  failed--customer doesn't exist");
-			return false;
-		}
 
 		// check if the item is available
 		ReservableItem item = (ReservableItem) readData(id, key);
@@ -156,9 +149,6 @@ public class ResourceManagerImpl implements ResourceManager {
 					+ key + ", " + location + ") failed--No more items");
 			return false;
 		} else {
-			cust.reserve(key, location, item.getPrice());
-			writeData(id, cust.getKey(), cust);
-
 			// decrease the number of available items in the storage
 			item.setCount(item.getCount() - 1);
 			item.setReserved(item.getReserved() + 1);

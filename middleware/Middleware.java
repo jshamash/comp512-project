@@ -3,9 +3,20 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.Vector;
 
+import ResImpl.Car;
+import ResImpl.Customer;
+import ResImpl.Flight;
+import ResImpl.Hotel;
+import ResImpl.RMHashtable;
+import ResImpl.RMItem;
+import ResImpl.ReservableItem;
+import ResImpl.ReservedItem;
 import ResImpl.ResourceManagerImpl;
+import ResImpl.Trace;
 import ResInterface.ResourceManager;
 
 public class Middleware implements ResourceManager {
@@ -13,6 +24,8 @@ public class Middleware implements ResourceManager {
 	static ResourceManager flightRM = null;
 	static ResourceManager carRM = null;
 	static ResourceManager roomRM = null;
+
+	protected RMHashtable m_itemHT = new RMHashtable();
 
 	public Middleware() throws RemoteException {
 	}
@@ -95,6 +108,27 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
+	// Reads a data item
+	private RMItem readData(int id, String key) {
+		synchronized (m_itemHT) {
+			return (RMItem) m_itemHT.get(key);
+		}
+	}
+
+	// Writes a data item
+	private void writeData(int id, String key, RMItem value) {
+		synchronized (m_itemHT) {
+			m_itemHT.put(key, value);
+		}
+	}
+
+	// Remove the item out of storage
+	protected RMItem removeData(int id, String key) {
+		synchronized (m_itemHT) {
+			return (RMItem) m_itemHT.remove(key);
+		}
+	}
+
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
 		synchronized (flightRM) {
@@ -117,13 +151,33 @@ public class Middleware implements ResourceManager {
 	}
 
 	public int newCustomer(int id) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+		Trace.info("INFO: RM::newCustomer(" + id + ") called");
+		// Generate a globally unique ID for the new customer
+		int cid = Integer.parseInt(String.valueOf(id)
+				+ String.valueOf(Calendar.getInstance().get(
+						Calendar.MILLISECOND))
+				+ String.valueOf(Math.round(Math.random() * 100 + 1)));
+		Customer cust = new Customer(cid);
+		writeData(id, cust.getKey(), cust);
+		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
+		return cid;
 	}
 
-	public boolean newCustomer(int id, int cid) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean newCustomer(int id, int customerID) throws RemoteException {
+		Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
+				+ ") called");
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			cust = new Customer(customerID);
+			writeData(id, cust.getKey(), cust);
+			Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
+					+ ") created a new customer");
+			return true;
+		} else {
+			Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
+					+ ") failed--customer already exists");
+			return false;
+		} // else
 	}
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
@@ -144,9 +198,42 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
-	public boolean deleteCustomer(int id, int customer) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean deleteCustomer(int id, int customerID)
+			throws RemoteException {
+		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called");
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			Trace.warn("RM::deleteCustomer(" + id + ", " + customerID
+					+ ") failed--customer doesn't exist");
+			return false;
+		} else {
+			// Increase the reserved numbers of all reservable items which the
+			// customer reserved.
+			RMHashtable reservationHT = cust.getReservations();
+			for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {
+				String reservedkey = (String) (e.nextElement());
+				ReservedItem reserveditem = cust.getReservedItem(reservedkey);
+				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+						+ ") has reserved " + reserveditem.getKey() + " "
+						+ reserveditem.getCount() + " times");
+				ReservableItem item = (ReservableItem) readData(id,
+						reserveditem.getKey());
+				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+						+ ") has reserved " + reserveditem.getKey()
+						+ "which is reserved" + item.getReserved()
+						+ " times and is still available " + item.getCount()
+						+ " times");
+				item.setReserved(item.getReserved() - reserveditem.getCount());
+				item.setCount(item.getCount() + reserveditem.getCount());
+			}
+
+			// remove the customer from the storage
+			removeData(id, cust.getKey());
+
+			Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+					+ ") succeeded");
+			return true;
+		} // if
 	}
 
 	public int queryFlight(int id, int flightNumber) throws RemoteException {
@@ -167,10 +254,23 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
-	public String queryCustomerInfo(int id, int customer)
+	public String queryCustomerInfo(int id, int customerID)
 			throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
+				+ ") called");
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
+					+ ") failed--customer doesn't exist");
+			return ""; // NOTE: don't change this--WC counts on this value
+						// indicating a customer does not exist...
+		} else {
+			String s = cust.printBill();
+			Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
+					+ "), bill follows...");
+			System.out.println(s);
+			return s;
+		}
 	}
 
 	public int queryFlightPrice(int id, int flightNumber)
@@ -192,24 +292,73 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
-	public boolean reserveFlight(int id, int customer, int flightNumber)
+	public boolean reserveFlight(int id, int customerID, int flightNumber)
 			throws RemoteException {
+		// Read customer object if it exists (and read lock it)
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			Trace.warn("RM::reserveFlight( " + id + ", " + customerID + ", "
+					+ flightNumber + ")  failed--customer doesn't exist");
+			return false;
+		}
 		synchronized (flightRM) {
-			return flightRM.reserveFlight(id, customer, flightNumber);
+			int price = flightRM.queryFlightPrice(id, flightNumber);
+			if (flightRM.reserveFlight(id, customerID, flightNumber)) {
+				// Item was successfully marked reserved by RM
+				cust.reserve(Flight.getKey(flightNumber),
+						String.valueOf(flightNumber), price);
+				writeData(id, cust.getKey(), cust);
+				return true;
+			} // else
+			Trace.warn("MW::reserveFlight( " + id + ", " + customerID + ", "
+					+ flightNumber + ")  failed--RM returned false");
+			return false;
 		}
 	}
 
-	public boolean reserveCar(int id, int customer, String location)
+	public boolean reserveCar(int id, int customerID, String location)
 			throws RemoteException {
+		// Read customer object if it exists (and read lock it)
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			Trace.warn("RM::reserveCar( " + id + ", " + customerID + ", "
+					+ location + ")  failed--customer doesn't exist");
+			return false;
+		}
 		synchronized (carRM) {
-			return carRM.reserveCar(id, customer, location);
+			int price = carRM.queryCarsPrice(id, location);
+			if (carRM.reserveCar(id, customerID, location)) {
+				// Item was successfully marked reserved by RM
+				cust.reserve(Car.getKey(location), location, price);
+				writeData(id, cust.getKey(), cust);
+				return true;
+			} // else
+			Trace.warn("MW::reserveCar( " + id + ", " + customerID + ", "
+					+ location + ")  failed--RM returned false");
+			return false;
 		}
 	}
 
-	public boolean reserveRoom(int id, int customer, String locationd)
+	public boolean reserveRoom(int id, int customerID, String location)
 			throws RemoteException {
+		// Read customer object if it exists (and read lock it)
+		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+		if (cust == null) {
+			Trace.warn("RM::reserveRoom( " + id + ", " + customerID + ", "
+					+ location + ")  failed--customer doesn't exist");
+			return false;
+		}
 		synchronized (roomRM) {
-			return roomRM.reserveRoom(id, customer, locationd);
+			int price = roomRM.queryRoomsPrice(id, location);
+			if (roomRM.reserveRoom(id, customerID, location)) {
+				// Item was successfully marked reserved by RM
+				cust.reserve(Hotel.getKey(location), location, price);
+				writeData(id, cust.getKey(), cust);
+				return true;
+			} // else
+			Trace.warn("MW::reserveRoom( " + id + ", " + customerID + ", "
+					+ location + ")  failed--RM returned false");
+			return false;
 		}
 	}
 
