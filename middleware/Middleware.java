@@ -18,7 +18,7 @@ import ResImpl.ReservedItem;
 import ResImpl.Trace;
 import ResInterface.ResourceManager;
 
-public class MiddlewareRMI implements ResourceManager {
+public class Middleware implements ResourceManager {
 
 	static ResourceManager flightRM = null;
 	static ResourceManager carRM = null;
@@ -26,7 +26,7 @@ public class MiddlewareRMI implements ResourceManager {
 
 	protected RMHashtable m_itemHT = new RMHashtable();
 
-	public MiddlewareRMI() throws RemoteException {
+	public Middleware() throws RemoteException {
 	}
 
 	public static void main(String args[]) {
@@ -87,7 +87,7 @@ public class MiddlewareRMI implements ResourceManager {
 
 			// At this point we are a client to the three RM servers.
 			// Now, establish server connection to serve client(s).
-			MiddlewareRMI obj = new MiddlewareRMI();
+			Middleware obj = new Middleware();
 			// dynamically generate the stub (client proxy)
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject
 					.exportObject(obj, 0);
