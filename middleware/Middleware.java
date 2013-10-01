@@ -215,26 +215,36 @@ public class Middleware implements ResourceManager {
 				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
 						+ ") has reserved " + reserveditem.getKey() + " "
 						+ reserveditem.getCount() + " times");
-				
+
 				String key = reserveditem.getKey();
 				String type = key.split("-")[0];
 				System.out.println(type);
-				switch(type){
+				switch (type) {
 				case "car":
+					carRM.removeReservations(id, key, reserveditem.getCount());
+					break;
 				case "hotel":
+					roomRM.removeReservations(id, key, reserveditem.getCount());
+					break;
 				case "flight":
-					default:
+					flightRM.removeReservations(id, key, reserveditem.getCount());
+					break;
+				default:
+					carRM.removeReservations(id, key, reserveditem.getCount());
+					roomRM.removeReservations(id, key, reserveditem.getCount());
+					flightRM.removeReservations(id, key, reserveditem.getCount());
 				}
-				
-//				ReservableItem item = (ReservableItem) readData(id,
-//						reserveditem.getKey());
-//				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
-//						+ ") has reserved " + reserveditem.getKey()
-//						+ "which is reserved" + item.getReserved()
-//						+ " times and is still available " + item.getCount()
-//						+ " times");
-//				item.setReserved(item.getReserved() - reserveditem.getCount());
-//				item.setCount(item.getCount() + reserveditem.getCount());
+
+				// ReservableItem item = (ReservableItem) readData(id,
+				// reserveditem.getKey());
+				// Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+				// + ") has reserved " + reserveditem.getKey()
+				// + "which is reserved" + item.getReserved()
+				// + " times and is still available " + item.getCount()
+				// + " times");
+				// item.setReserved(item.getReserved() -
+				// reserveditem.getCount());
+				// item.setCount(item.getCount() + reserveditem.getCount());
 			}
 
 			// remove the customer from the storage
@@ -395,8 +405,7 @@ public class Middleware implements ResourceManager {
 				Trace.warn("MW::reserveItinerary failed, could not reserve flight "
 						+ flightNumber);
 				return false; // Flight couldn't be reserved
-			}
-			else {
+			} else {
 				Trace.info("MW::reserveItinerary:: reserved flight "
 						+ flightNumber);
 			}
@@ -408,8 +417,7 @@ public class Middleware implements ResourceManager {
 				Trace.warn("MW::reserveItinerary failed, could not reserve car at location "
 						+ location);
 				return false;
-			}
-			else {
+			} else {
 				Trace.info("MW::reserveItinerary:: reserved car at location "
 						+ location);
 			}
@@ -421,8 +429,7 @@ public class Middleware implements ResourceManager {
 				Trace.warn("MW::reserveItinerary failed, could not reserve room at location "
 						+ location);
 				return false;
-			}
-			else {
+			} else {
 				Trace.info("MW::reserveItinerary:: reserved room at location "
 						+ location);
 			}
@@ -430,6 +437,12 @@ public class Middleware implements ResourceManager {
 
 		// Everything worked!
 		return true;
+	}
+
+	public boolean removeReservations(int id, String key, int count)
+			throws RemoteException {
+		// We never have to do this!
+		return false;
 	}
 
 }
