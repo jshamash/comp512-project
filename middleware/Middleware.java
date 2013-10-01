@@ -215,15 +215,26 @@ public class Middleware implements ResourceManager {
 				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
 						+ ") has reserved " + reserveditem.getKey() + " "
 						+ reserveditem.getCount() + " times");
-				ReservableItem item = (ReservableItem) readData(id,
-						reserveditem.getKey());
-				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
-						+ ") has reserved " + reserveditem.getKey()
-						+ "which is reserved" + item.getReserved()
-						+ " times and is still available " + item.getCount()
-						+ " times");
-				item.setReserved(item.getReserved() - reserveditem.getCount());
-				item.setCount(item.getCount() + reserveditem.getCount());
+				
+				String key = reserveditem.getKey();
+				String type = key.split("-")[0];
+				System.out.println(type);
+				switch(type){
+				case "car":
+				case "hotel":
+				case "flight":
+					default:
+				}
+				
+//				ReservableItem item = (ReservableItem) readData(id,
+//						reserveditem.getKey());
+//				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+//						+ ") has reserved " + reserveditem.getKey()
+//						+ "which is reserved" + item.getReserved()
+//						+ " times and is still available " + item.getCount()
+//						+ " times");
+//				item.setReserved(item.getReserved() - reserveditem.getCount());
+//				item.setCount(item.getCount() + reserveditem.getCount());
 			}
 
 			// remove the customer from the storage

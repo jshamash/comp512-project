@@ -457,5 +457,18 @@ public class ResourceManagerImpl implements ResourceManager {
 			String location, boolean Car, boolean Room) throws RemoteException {
 		return false;
 	}
+	
+	public boolean removeReservations(int id, String key, int count) {
+		ReservableItem item = (ReservableItem) readData(id, key);
+		if (item != null) {
+			Trace.info("RM::removing reservations for " + key
+					+ "which is reserved " + item.getReserved()
+					+ " times and is still available " + item.getCount() + " times");
+			item.setReserved(item.getReserved() - count);
+			item.setCount(item.getCount() + count);
+			return true;
+		}
+		return false;
+	}
 
 }
