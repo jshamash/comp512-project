@@ -234,17 +234,6 @@ public class Middleware implements ResourceManager {
 					roomRM.removeReservations(id, key, reserveditem.getCount());
 					flightRM.removeReservations(id, key, reserveditem.getCount());
 				}
-
-				// ReservableItem item = (ReservableItem) readData(id,
-				// reserveditem.getKey());
-				// Trace.info("RM::deleteCustomer(" + id + ", " + customerID
-				// + ") has reserved " + reserveditem.getKey()
-				// + "which is reserved" + item.getReserved()
-				// + " times and is still available " + item.getCount()
-				// + " times");
-				// item.setReserved(item.getReserved() -
-				// reserveditem.getCount());
-				// item.setCount(item.getCount() + reserveditem.getCount());
 			}
 
 			// remove the customer from the storage
