@@ -1,0 +1,73 @@
+#Script that will do all necessary work to start a Resource Manager server
+#	- Sets CLASSPATH
+#	- Compiles scripts
+#	- Bring user to right directory
+#
+#Requires:
+#	1 - Port number of the server
+#		> RMIRegistry will be set using this number
+
+VAR=${PWD}
+IFS='/' read -a array <<< "$VAR"
+echo $VAR
+echo ${array[3]}
+
+export CLASSPATH="$VAR/server/"
+
+#Setting values for server name and server port
+SERVER1NAME="lab2-1"
+SERVER2NAME="lab2-2"
+SERVER3NAME="lab2-3"
+SERVER1PORT=6961
+SERVER2PORT=6962
+SERVER3PORT=6963
+MIDDLEWAREPORT=6969
+
+if [ $# -eq 7 ];then
+	echo "Seven Arguments found"
+	
+	echo "Server 1 is $1"
+	SERVER1NAME=$1
+
+	re='^[0-9]+([.][0-9]+)?$'
+	if [[ $2 =~ $re ]] ; then
+		echo "Server 1 port is $2"
+		SERVER1PORT=$2
+	fi
+
+	echo "Server 2 is $3"
+	SERVER2NAME=$3
+
+	if [[ $4 =~ $re ]] ; then
+		echo "Server 2 port is $4"
+		SERVER2PORT=$4
+	fi
+
+	echo "Server 3 is $5"
+	SERVER3NAME=$5
+
+	if [[ $6 =~ $re ]] ; then
+		echo "Server 3 port is $6"
+		SERVER3PORT=$6
+	fi
+
+	if [[ $7 =~ $re ]] ; then
+		echo "Server 3 port is $7"
+		PORT=$7
+	fi
+else
+	echo "Using default server and ports: lab2-1 6961 lab2-2 6962 lab2-3 6963 6969"
+fi
+
+echo "Accessing correct directory"
+cd ./middleware/
+
+echo "Compiling scripts"
+javac *.java
+
+echo "Starting RMI Registry"
+rmiregistry $PORT &
+
+echo "Starting middleware"
+java -Djava.security.policy=middleware.policy -classpath .:../server Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
+
