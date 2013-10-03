@@ -223,7 +223,7 @@ public class Middleware implements ResourceManager {
 				case "car":
 					carRM.removeReservations(id, key, reserveditem.getCount());
 					break;
-				case "hotel":
+				case "room":
 					roomRM.removeReservations(id, key, reserveditem.getCount());
 					break;
 				case "flight":
