@@ -32,3 +32,14 @@ On the client machine:
 ```
 ./clientscript <middleware-hostname> <middleware-port> 
 ```
+
+## Testing locally
+
+To test everything locally, run
+
+```
+cd comp512-project
+./testscript
+```
+
+This will launch three servers, a middleware, and two clients, all running on localhost.

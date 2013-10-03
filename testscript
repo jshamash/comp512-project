@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# For testing purposes
+# Launches three servers, a middleware and two clients, all running on localhost.
+
 xterm -e ./serverscript 6060 &
 xterm -e ./serverscript 6161 &
 xterm -e ./serverscript 6262 &
