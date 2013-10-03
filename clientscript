@@ -39,10 +39,10 @@ elif [ $# -eq 2 ];then
 fi
 
 echo "Accessing correct directory"
-cd ~/comp512/comp512-project/client/
+cd ./client/
 
 echo "Compiling scripts"
-javac */*.java
+javac *.java
 
 echo "Starting server"
 java -Djava.security.policy=client.policy -classpath .:../server client $SERVERNAME $PORT

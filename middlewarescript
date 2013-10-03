@@ -52,7 +52,7 @@ if [ $# -eq 7 ];then
 	fi
 
 	if [[ $7 =~ $re ]] ; then
-		echo "Server 3 port is $7"
+		echo "RMI port is $7"
 		PORT=$7
 	fi
 else
