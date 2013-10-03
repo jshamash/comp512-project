@@ -57,6 +57,6 @@ echo "Starting RMI Registry"
 rmiregistry $PORT &
 
 echo "Starting server"
-java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/~/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl $PORT &
+java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/~/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl $PORT
 
 

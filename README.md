@@ -1,44 +1,34 @@
-comp512-project
+comp512-project-RMI
 ===============
+
+Each of the client, middleware, and servers can be run on different machines.
+The client talks directly to the middleware (makes requests on the middleware's Resource Manager).
+The middleware, based on the client's request, chooses a server to forward that request to. It then executes this request on that server's Resource Manager (thereby executing on that server via RMI).
+In then returns the reply, which the client receives and handles.
+
+The middleware handles customers. Adding and deleting customers is done within the middleware. Complex queries involving customers, e.g. flight reservations which demand knowledge of the flight as well as the customer, are split between the middleware and the servers. The middleware retrieves the information it needs from the servers, then uses this info to complete the request.
+
+We chose to handle customers in this way because we felt it simplified the architecture of our program. The alternatives would be to have another server dedicated to customers, which would involve making a stripped down version of an RM and would leave more connections to handle. Or, we could have each server hold their own record of customers, and have an identical copy on each machine -- but this defeats the purpose of distributing the load and introduces unnecessary redundancy. A third approach would be to have a subset of the customer list on each of the servers, and aggreate the results when we need the full list of customers -- this, however, would really complicate the implementation as it involves much more sophisticated computation for every request involving customers.
 
 ## Example setup
 
-### PREPARING CODE
-
 ```
-cd comp512/comp512-project
-git pull origin master
-javac server/*/*.java middleware/Middleware.java client/client.java
-
+cd comp512-project
 ```
 
-### SERVER (lab2-1, lab2-2, lab2-3)
-
-NOTE: in this case each RM is run on a different machine.
+On each server machine:
 
 ```
-rmiregistry 6961 &
-rmiregistry 6962 &
-rmiregistry 6963 &
-export CLASSPATH="/home/2010/jshama1/comp512/comp512-project/server/"
-cd server
-java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/home/2010/jshama1/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl 6961 &
-java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/home/2010/jshama1/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl 6962 &
-java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/home/2010/jshama1/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl 6963 &
+./serverscript <rmi-port>
 ```
 
-### MIDDLEWARE (lab2-4)
+On the middleware machine:
 
 ```
-cd middleware
-rmiregistry 6969 &
-export CLASSPATH="/home/2010/jshama1/comp512/comp512-project/server/"
-java  -Djava.security.policy=middleware.policy -classpath .:../server Middleware lab2-1 6961 lab2-2 6962 lab2-3 6963 6969
+./middlewarescript <server1-hostname> <server1-port> <server2-hostname> <sever2-port> <server3-hostname> <server3-port> <middleware-rmi-port>
 ```
 
-### CLIENT (teaching)
-
+On the client machine:
 ```
-cd client
-java -Djava.security.policy=client.policy -classpath .:../server client lab2-4 6969
+./clientscript <middleware-hostname> <middleware-port> 
 ```
