@@ -1,4 +1,4 @@
-grant codeBase "file:/home/2010/jshama1/comp512/comp512-project/server" {
+grant codeBase "file:$HOME/comp512/comp512-project/server" {
     permission java.security.AllPermission;
 };
 
