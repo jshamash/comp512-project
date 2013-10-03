@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #Script that will do all necessary work to start a Resource Manager server
 #	- Sets CLASSPATH
 #	- Compiles scripts
@@ -12,51 +14,22 @@ VAR=${PWD}
 export CLASSPATH="$VAR/server/"
 
 #Setting values for server name and server port
-SERVERNAME="lab2-1"
-PORT=6961
-
 if [ $# -eq 1 ];then
-	echo "One argument, checking type"
-	
-	re='^[0-9]+([.][0-9]+)?$'
-	if ! [[ $1 =~ $re ]] ; then
-		echo "Setting server name to $1"
-		SERVERNAME=$1
-	else
-		echo "Setting port to $1"
-		PORT=$1
-	fi
-
-elif [ $# -eq 2 ];then
-	re='^[0-9]+([.][0-9]+)?$'
-	if ! [[ $1 =~ $re ]] ; then
-		echo "Setting server name to $1"
-		SERVERNAME=$1
-
-
-		if [[ $2 =~ $re ]] ; then
-			echo "Setting port to $2"
-			PORT=$2
-		fi
-	else
-		echo "Setting port number to $1"
-		PORT=$1
-		echo "Setting server name to $2"
-		SERVERNAME=$2
-	fi
+	PORT=$1
+else
+	echo "Usage: ./serverscript <listen-port>"
+	exit -1
 fi
-
+echo "port is $PORT"
 
 cd ./server/
-
-echo "Compiling scripts"
-javac */*.java
 
 echo "Starting RMI Registry"
 
 rmiregistry $PORT &
 
-echo "Starting server"
-java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:/~/comp512/comp512-project/server/ ResImpl.ResourceManagerImpl $PORT
-
+echo "Starting server..."
+javac */*.java
+echo "grant codeBase \"file:$VAR/server\" { permission java.security.AllPermission; };" > server.policy
+java -Djava.security.policy=server.policy -Djava.rmi.server.codebase=file:$VAR/server/ ResImpl.ResourceManagerImpl $PORT
 

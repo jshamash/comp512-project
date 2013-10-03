@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #Script that will do all necessary work to start a Resource Manager server
 #	- Sets CLASSPATH
 #	- Compiles scripts
@@ -8,66 +10,41 @@
 #		> RMIRegistry will be set using this number
 
 VAR=${PWD}
-IFS='/' read -a array <<< "$VAR"
-echo $VAR
-echo ${array[3]}
 
 export CLASSPATH="$VAR/server/"
 
-#Setting values for server name and server port
-SERVER1NAME="lab2-1"
-SERVER2NAME="lab2-2"
-SERVER3NAME="lab2-3"
-SERVER1PORT=6961
-SERVER2PORT=6962
-SERVER3PORT=6963
-MIDDLEWAREPORT=6969
-
 if [ $# -eq 7 ];then
-	echo "Seven Arguments found"
 	
 	echo "Server 1 is $1"
 	SERVER1NAME=$1
 
-	re='^[0-9]+([.][0-9]+)?$'
-	if [[ $2 =~ $re ]] ; then
-		echo "Server 1 port is $2"
-		SERVER1PORT=$2
-	fi
+	echo "Server 1 port is $2"
+	SERVER1PORT=$2
 
 	echo "Server 2 is $3"
 	SERVER2NAME=$3
 
-	if [[ $4 =~ $re ]] ; then
-		echo "Server 2 port is $4"
-		SERVER2PORT=$4
-	fi
+	echo "Server 2 port is $4"
+	SERVER2PORT=$4
 
 	echo "Server 3 is $5"
 	SERVER3NAME=$5
 
-	if [[ $6 =~ $re ]] ; then
-		echo "Server 3 port is $6"
-		SERVER3PORT=$6
-	fi
+	echo "Server 3 port is $6"
+	SERVER3PORT=$6
 
-	if [[ $7 =~ $re ]] ; then
-		echo "RMI port is $7"
-		PORT=$7
-	fi
+	echo "RMI port is $7"
+	PORT=$7
 else
-	echo "Using default server and ports: lab2-1 6961 lab2-2 6962 lab2-3 6963 6969"
+	echo "Usage: ./middlewarescript <server1-hostname> <server1-port> <server2-hostname> <server2-port> <server3-hostname> <server3-port> <middleware-listenport>"
+	exit -1
 fi
 
-echo "Accessing correct directory"
-cd ./middleware/
-
-echo "Compiling scripts"
-javac *.java
-
-echo "Starting RMI Registry"
+echo "Starting RMI Registry..."
 rmiregistry $PORT &
 
-echo "Starting middleware"
+echo "Starting middleware..."
+cd ./middleware/
+echo "grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; };" > middleware.policy
+javac *.java
 java -Djava.security.policy=middleware.policy -classpath .:../server Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
-

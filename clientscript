@@ -1,49 +1,22 @@
+#!/bin/bash
+
 VAR=${PWD}
 
 export CLASSPATH="$VAR/server/"
 
 #Setting values for server name and server port
-SERVERNAME="lab2-4"
-PORT=6969
-
-if [ $# -eq 1 ];then
-	echo "One argument, checking type"
-	
-	re='^[0-9]+([.][0-9]+)?$'
-	if ! [[ $1 =~ $re ]] ; then
-		echo "First argument string, assuming server name"
-		echo "Setting server name to $1"
-		SERVERNAME=$1
-	else
-		echo "First argument is an int"
-		PORT=$1
-	fi
-
-elif [ $# -eq 2 ];then
-	#echo "Two arguments, checking if first is a string, then setting vars"
-	re='^[0-9]+([.][0-9]+)?$'
-	if ! [[ $1 =~ $re ]] ; then
-		echo "Setting server name to $1"
-		SERVERNAME=$1
-
-		if [[ $2 =~ $re ]] ; then
-			echo "Setting port to $2"
-			PORT=$2
-		fi
-	else
-		echo "Setting port number to $1"
-		PORT=$1
-		echo "Setting server name to $2"
-		SERVERNAME=$2
-	fi
+if [ $# -eq 2 ];then
+	SERVERNAME=$1
+	PORT=$2
+else
+	echo "Usage: ./clientscript <middleware-hostname> <middleware-port>"
+	exit -1
 fi
 
-echo "Accessing correct directory"
+echo "Server is $SERVERNAME"
+echo "Port is $PORT"
+echo "Starting client..."
 cd ./client/
-
-echo "Compiling scripts"
+echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; };" > client.policy
 javac *.java
-
-echo "Starting server"
 java -Djava.security.policy=client.policy -classpath .:../server client $SERVERNAME $PORT
-
