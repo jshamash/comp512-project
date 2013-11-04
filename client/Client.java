@@ -6,12 +6,12 @@ import java.rmi.registry.Registry;
 import java.util.*;
 import java.io.*;
 
-public class client {
+public class Client {
 	static String message = "blank";
 	static ResourceManager rm = null;
 
 	public static void main(String args[]) {
-		client obj = new client();
+		Client obj = new Client();
 		BufferedReader stdin = new BufferedReader(new InputStreamReader(
 				System.in));
 		String command = "";

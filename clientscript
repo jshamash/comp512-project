@@ -19,4 +19,4 @@ echo "Starting client..."
 cd ./client/
 echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; };" > client.policy
 javac *.java
-java -Djava.security.policy=client.policy -classpath .:../server client $SERVERNAME $PORT
+java -Djava.security.policy=client.policy -classpath .:../server Client $SERVERNAME $PORT
