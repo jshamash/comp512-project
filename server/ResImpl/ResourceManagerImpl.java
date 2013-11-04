@@ -61,23 +61,17 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Reads a data item
 	private RMItem readData(int id, String key) {
-		synchronized (m_itemHT) {
-			return (RMItem) m_itemHT.get(key);
-		}
+		return (RMItem) m_itemHT.get(key);
 	}
 
 	// Writes a data item
 	private void writeData(int id, String key, RMItem value) {
-		synchronized (m_itemHT) {
-			m_itemHT.put(key, value);
-		}
+		m_itemHT.put(key, value);
 	}
 
 	// Remove the item out of storage
 	protected RMItem removeData(int id, String key) {
-		synchronized (m_itemHT) {
-			return (RMItem) m_itemHT.remove(key);
-		}
+		return (RMItem) m_itemHT.remove(key);
 	}
 
 	// deletes the entire item
