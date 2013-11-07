@@ -1,4 +1,5 @@
 import java.rmi.*;
+
 import ResInterface.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -570,6 +571,71 @@ public class Client {
 					e.printStackTrace();
 				}
 				break;
+				
+			case 23: // Start txn
+				if (arguments.size() != 1) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					int xid = rm.start();
+					System.out.println("Started txn with ID: " + xid);
+				} catch (RemoteException e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+				
+			case 24: // commit given xid
+				if (arguments.size() != 2) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					Id = obj.getInt(arguments.elementAt(1));
+					if (rm.commit(Id))
+						System.out.println("Committed successfully");
+					else System.out.println("Commit failed");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+				
+			case 25: // abort given xid
+				if (arguments.size() != 2) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					Id = obj.getInt(arguments.elementAt(1));
+					rm.abort(Id);
+					System.out.println("Aborted transaction");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+				
+			case 26:
+				if (arguments.size() != 1) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					if (rm.shutdown())
+						System.out.println("Shutdown successful");
+					else
+						System.out.println("Shutdown failed");
+				} catch (RemoteException e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
 
 			default:
 				System.out
@@ -636,6 +702,14 @@ public class Client {
 			return 21;
 		else if (argument.compareToIgnoreCase("newcustomerid") == 0)
 			return 22;
+		else if (argument.compareToIgnoreCase("start") == 0)
+			return 23;
+		else if (argument.compareToIgnoreCase("commit") == 0)
+			return 24;
+		else if (argument.compareToIgnoreCase("abort") == 0)
+			return 25;
+		else if (argument.compareToIgnoreCase("shutdown") == 0)
+			return 26;
 		else
 			return 666;
 
@@ -652,7 +726,8 @@ public class Client {
 				.println("deletecustomer\nqueryflight\nquerycar\nqueryroom\nquerycustomer");
 		System.out.println("queryflightprice\nquerycarprice\nqueryroomprice");
 		System.out.println("reserveflight\nreservecar\nreserveroom\nitinerary");
-		System.out.println("nquit");
+		System.out.println("start\ncommit\nabort\nshutdown");
+		System.out.println("quit");
 		System.out
 				.println("\ntype help, <commandname> for detailed info(NOTE the use of comma).");
 	}
@@ -851,6 +926,38 @@ public class Client {
 			System.out.println("\tCreates a new customer with the id provided");
 			System.out.println("\nUsage:");
 			System.out.println("\tnewcustomerid, <id>, <customerid>");
+			break;
+			
+		case 23: // Start txn
+			System.out.println("Start a new transaction");
+			System.out.println("Purpose:");
+			System.out.println("\tStarts a transaction");
+			System.out.println("\nUsage:");
+			System.out.println("\tstart");
+			break;
+			
+		case 24: // Commit txn
+			System.out.println("Commit the current transaction");
+			System.out.println("Purpose:");
+			System.out.println("\tCommit a transaction");
+			System.out.println("\nUsage:");
+			System.out.println("\tcommit, <xid>");
+			break;
+			
+		case 25: // Abort txn
+			System.out.println("Abort the current transaction");
+			System.out.println("Purpose:");
+			System.out.println("\tAbort a transaction");
+			System.out.println("\nUsage:");
+			System.out.println("\tabort, <xid>");
+			break;
+			
+		case 26: // shutdown
+			System.out.println("Shutdown the system");
+			System.out.println("Purpose:");
+			System.out.println("\tShutdown the system");
+			System.out.println("\nUsage:");
+			System.out.println("\tshutdown");
 			break;
 
 		default:
