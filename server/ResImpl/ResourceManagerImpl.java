@@ -20,15 +20,16 @@ import transaction.TransactionAbortedException;
 public class ResourceManagerImpl implements ResourceManager {
 
 	protected RMHashtable m_itemHT = new RMHashtable();
-	
-	//Create a transaction hashtable to store transaction data --> this will be used fho the real abort shizzle
-	protected Hashtable<Integer,HashMap<String,RMItem>> t_records = new Hashtable<Integer,HashMap<String,RMItem>>();
+
+	// Create a transaction hashtable to store transaction data --> this will be
+	// used fho the real abort shizzle
+	protected Hashtable<Integer, HashMap<String, RMItem>> t_records = new Hashtable<Integer, HashMap<String, RMItem>>();
+
+	static String server = "localhost";
+	static int port = 1099;
 
 	public static void main(String args[]) {
 		// Figure out where server is running
-		String server = "localhost";
-		int port = 1099;
-
 		if (args.length == 1) {
 			server = server + ":" + args[0];
 			port = Integer.parseInt(args[0]);
@@ -473,81 +474,120 @@ public class ResourceManagerImpl implements ResourceManager {
 		}
 		return false;
 	}
-	
-	//Creates an entry in the transaction abort table
+
+	// Creates an entry in the transaction abort table
 	@Override
-	public void start(int xid) throws RemoteException{
-		synchronized(t_records){
-			//Create new HashTable entry in the transactions table
+	public void start(int xid) throws RemoteException {
+		synchronized (t_records) {
+			// Create new HashTable entry in the transactions table
 			t_records.put(xid, new HashMap<String, RMItem>());
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
-	public boolean commit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException {
-		//Start by removing the hashtable entry for this transaction ID inside the transaction record
+	public boolean commit(int xid) throws RemoteException,
+			TransactionAbortedException, InvalidTransactionException {
+		// Start by removing the hashtable entry for this transaction ID inside
+		// the transaction record
 		Object removedObject = t_records.remove(xid);
-		if(removedObject==null) return false;//if there was no hash table fho dis transaction ID
-		
-		//Now unlock all locks related to the xid
-		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
-			
+		if (removedObject == null)
+			return false;// if there was no hash table fho dis transaction ID
+
+		// Now unlock all locks related to the xid
+		// TODO: something like: lockManager.unlockAll(xid); //--> does not need
+		// to be synchronized, since unlockAll method takes care of that
+
 		return true;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
-	public void abort(int xid) throws RemoteException, InvalidTransactionException {
-		//Start by removing the hashtable entry for this transaction ID inside the transaction records table
+	public void abort(int xid) throws RemoteException,
+			InvalidTransactionException {
+		// Start by removing the hashtable entry for this transaction ID inside
+		// the transaction records table
 		HashMap<String, RMItem> r_table = t_records.remove(xid);
-		
-		if(r_table != null)
-		{
+
+		if (r_table != null) {
 			Set<String> keys = r_table.keySet();
 			RMItem tmp_item;
-			
-			//Loop through all elements in the removed hash table and reset their original value inside the RM's hash table
-			for (String key : keys){
-				tmp_item = (RMItem)r_table.get(key);
-				
-				if(tmp_item==null)
-				{
-					//We need to remove this item from the RM's hash table
+
+			// Loop through all elements in the removed hash table and reset
+			// their original value inside the RM's hash table
+			for (String key : keys) {
+				tmp_item = (RMItem) r_table.get(key);
+
+				if (tmp_item == null) {
+					// We need to remove this item from the RM's hash table
 					m_itemHT.remove(key);
-				}else{
-					//We need to add this item to this RM's hash table
-					m_itemHT.put(key, (RMItem)tmp_item);
+				} else {
+					// We need to add this item to this RM's hash table
+					m_itemHT.put(key, (RMItem) tmp_item);
 				}
 			}
 		}
-		
-		
-		//Now unlock all locks related to the xid
-		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
-		
+
+		// Now unlock all locks related to the xid
+		// TODO: something like: lockManager.unlockAll(xid); //--> does not need
+		// to be synchronized, since unlockAll method takes care of that
+
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
 	public boolean shutdown() throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		// Remove self from registry
+		UnicastRemoteObject.unexportObject(this, true);
+		// Unbind self from the registry
+		Registry registry = LocateRegistry.getRegistry(port);
+		try {
+			registry.unbind("Group1ResourceManager");
+		} catch (NotBoundException e) {
+			System.out.println("Couldn't unbind self from registry");
+			return false;
+		}
+		
+		// Kill process in separate thread in order to let method return
+		new Thread() {
+			@Override
+			public void run() {
+				System.out.print("Shutting down...");
+				try {
+					sleep(2000);
+				} catch (InterruptedException e) {
+					// I don't care
+				}
+				System.out.println("done");
+				System.exit(0);
+			}
+		}.start();
+		
+		return true;
 	}
-	
-	
-	//USELESS FUNCTIONS GO BELOW
-	//THIS IS THE NAUGHTY CORNER
-	
-	/* (non-Javadoc)
+
+	// USELESS FUNCTIONS GO BELOW
+	// THIS IS THE NAUGHTY CORNER
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#start()
 	 */
 	public int start() throws RemoteException {
-		//We don't need this method in the RM since the middleware layer should never actually call this 
-		//Returns 0 to tell that there were no ID created if this method is ever called
+		// We don't need this method in the RM since the middleware layer should
+		// never actually call this
+		// Returns 0 to tell that there were no ID created if this method is
+		// ever called
 		return 0;
 	}
 

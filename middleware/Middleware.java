@@ -1,3 +1,4 @@
+import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -37,12 +38,15 @@ public class Middleware implements ResourceManager {
 	//Our transaction manager
 	TransactionManager t_manager = new TransactionManager();
 
+	
+	static String flightServer, carServer, roomServer;
+	static int flightPort, carPort, roomPort, rmiPort;
+	
 	public Middleware() throws RemoteException {
 	}
 
 	public static void main(String args[]) {
-		String flightServer, carServer, roomServer;
-		int flightPort, carPort, roomPort, rmiPort;
+		
 
 		if (args.length != 7) {
 			System.err.println("Wrong usage");
@@ -542,8 +546,35 @@ public class Middleware implements ResourceManager {
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
 	public boolean shutdown() throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		boolean success = false;
+		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
+		
+		UnicastRemoteObject.unexportObject(this, true);
+		// Unbind self from the registry
+		Registry registry = LocateRegistry.getRegistry(rmiPort);
+		try {
+			registry.unbind("Group1ResourceManager");
+		} catch (NotBoundException e) {
+			System.out.println("Couldn't unbind self from registry");
+			return false;
+		}
+		
+		// Kill process in separate thread in order to let method return
+		new Thread() {
+			@Override
+			public void run() {
+				System.out.print("Shutting down...");
+				try {
+					sleep(2000);
+				} catch (InterruptedException e) {
+					// I don't care
+				}
+				System.out.println("done");
+				System.exit(0);
+			}
+		}.start();
+		
+		return success;
 	}
 
 	
