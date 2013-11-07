@@ -238,6 +238,12 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -253,6 +259,12 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -264,6 +276,12 @@ public class Middleware implements ResourceManager {
 			return roomRM.addRooms(id, location, numRooms, price);
 		} catch (DeadlockException e) {
 			// TODO abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -281,6 +299,12 @@ public class Middleware implements ResourceManager {
 			writeData(id, cust.getKey(), cust);
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
 		return cid;
@@ -305,6 +329,12 @@ public class Middleware implements ResourceManager {
 			}
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -315,6 +345,12 @@ public class Middleware implements ResourceManager {
 			return flightRM.deleteFlight(id, flightNum);
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -325,6 +361,12 @@ public class Middleware implements ResourceManager {
 			return carRM.deleteCars(id, location);
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -335,6 +377,12 @@ public class Middleware implements ResourceManager {
 			return roomRM.deleteRooms(id, location);
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -399,6 +447,12 @@ public class Middleware implements ResourceManager {
 			}
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (TransactionAbortedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 		return false;
 	}
@@ -509,6 +563,12 @@ public class Middleware implements ResourceManager {
 			return false;
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -538,6 +598,12 @@ public class Middleware implements ResourceManager {
 			return false;
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -567,6 +633,12 @@ public class Middleware implements ResourceManager {
 			return false;
 		} catch (DeadlockException e) {
 			// TODO Abort
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
