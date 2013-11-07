@@ -586,7 +586,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			return false;// if there was no hash table fho dis transaction ID
 
 		// Now unlock all locks related to the xid
-		// TODO: something like: lockManager.unlockAll(xid); //--> does not need
+		lockManager.UnlockAll(xid); //--> does not need
 		// to be synchronized, since unlockAll method takes care of that
 
 		return true;
@@ -631,7 +631,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			}
 			
 			// Now unlock all locks related to the xid
-			// TODO: something like: lockManager.unlockAll(xid);
+			lockManager.UnlockAll(xid);
 			// does not need to be synchronized, since unlockAll method takes care of that
 			
 		}

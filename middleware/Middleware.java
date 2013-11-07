@@ -755,7 +755,7 @@ public class Middleware implements ResourceManager {
 				System.out.println("Successfully found and removed hash table TID: "+ xid + " from customer RM.");
 				
 				//Now unlock all locks related to the xid
-				//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
+				lockManager.UnlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
 			}
 		}catch(InvalidTransactionException e){
 			System.out.println(e.toString());
@@ -806,8 +806,7 @@ public class Middleware implements ResourceManager {
 					}
 					
 					//Now unlock all locks related to the xid
-					//TODO: something like: lockManager.unlockAll(xid); 
-					//--> does not need to be synchronized, since unlockAll method takes care of that
+					lockManager.UnlockAll(xid); 
 					
 				}
 				
