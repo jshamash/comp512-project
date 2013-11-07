@@ -93,7 +93,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			// We're trying to write a new item
 			record.put(key, null);
 		} else {
-			// We're reading, deleting, or overwriting an item
+			// We're reading or deleting an item
 			RMItem copy = (RMItem) DeepCopy.copy(pastItem);
 			if (copy == null) {
 				System.err.println("Couldn't copy this item -- not serializable");
@@ -119,7 +119,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 		if (lock) {
 			System.out.println("Got a read lock for txn id " + id);
-			this.record(id, key, null);
+			//this.record(id, key, null);
 			item = (RMItem) m_itemHT.get(key);
 		}
 

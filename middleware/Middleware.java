@@ -181,7 +181,7 @@ public class Middleware implements ResourceManager {
 
 		if (lock) {
 			System.out.println("Got a read lock for txn id " + id);
-			this.record(id, key, null);
+			//this.record(id, key, null);
 			item = (RMItem) m_itemHT.get(key);
 		}
 
@@ -230,9 +230,14 @@ public class Middleware implements ResourceManager {
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.FLIGHT);
 			return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
 		} catch (DeadlockException e) {
-			// TODO abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return false;
 	}
@@ -240,9 +245,14 @@ public class Middleware implements ResourceManager {
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.CAR);
 			return carRM.addCars(id, location, numCars, price);
 		} catch (DeadlockException e) {
-			// TODO abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return false;
 	}
@@ -250,6 +260,7 @@ public class Middleware implements ResourceManager {
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.addRooms(id, location, numRooms, price);
 		} catch (DeadlockException e) {
 			// TODO abort
@@ -266,6 +277,7 @@ public class Middleware implements ResourceManager {
 				+ String.valueOf(Math.round(Math.random() * 100 + 1)));
 		Customer cust = new Customer(cid);
 		try {
+			t_manager.enlist(id, TransactionManager.CUSTOMER);
 			writeData(id, cust.getKey(), cust);
 		} catch (DeadlockException e) {
 			// TODO Abort
@@ -281,6 +293,7 @@ public class Middleware implements ResourceManager {
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
 				cust = new Customer(customerID);
+				t_manager.enlist(id, TransactionManager.CUSTOMER);
 				writeData(id, cust.getKey(), cust);
 				Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
 						+ ") created a new customer");
@@ -298,6 +311,7 @@ public class Middleware implements ResourceManager {
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.FLIGHT);
 			return flightRM.deleteFlight(id, flightNum);
 		} catch (DeadlockException e) {
 			// TODO Abort
@@ -307,6 +321,7 @@ public class Middleware implements ResourceManager {
 
 	public boolean deleteCars(int id, String location) throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.CAR);
 			return carRM.deleteCars(id, location);
 		} catch (DeadlockException e) {
 			// TODO Abort
@@ -316,6 +331,7 @@ public class Middleware implements ResourceManager {
 
 	public boolean deleteRooms(int id, String location) throws RemoteException {
 		try {
+			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.deleteRooms(id, location);
 		} catch (DeadlockException e) {
 			// TODO Abort
@@ -339,8 +355,7 @@ public class Middleware implements ResourceManager {
 				RMHashtable reservationHT = cust.getReservations();
 				for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {
 					String reservedkey = (String) (e.nextElement());
-					ReservedItem reserveditem = cust
-							.getReservedItem(reservedkey);
+					ReservedItem reserveditem = cust.getReservedItem(reservedkey);
 					Trace.info("RM::deleteCustomer(" + id + ", " + customerID
 							+ ") has reserved " + reserveditem.getKey() + " "
 							+ reserveditem.getCount() + " times");
@@ -349,19 +364,25 @@ public class Middleware implements ResourceManager {
 					String type = key.split("-")[0];
 					System.out.println(type);
 					if (type.equals("car")) {
+						t_manager.enlist(id, TransactionManager.CAR);
 						carRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else if (type.equals("room")) {
+						t_manager.enlist(id, TransactionManager.ROOM);
 						roomRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else if (type.equals("flight")) {
+						t_manager.enlist(id, TransactionManager.FLIGHT);
 						flightRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else {
+						t_manager.enlist(id, TransactionManager.CAR);
 						carRM.removeReservations(id, key,
 								reserveditem.getCount());
+						t_manager.enlist(id, TransactionManager.ROOM);
 						roomRM.removeReservations(id, key,
 								reserveditem.getCount());
+						t_manager.enlist(id, TransactionManager.FLIGHT);
 						flightRM.removeReservations(id, key,
 								reserveditem.getCount());
 					}
@@ -369,6 +390,7 @@ public class Middleware implements ResourceManager {
 				}
 
 				// remove the customer from the storage
+				t_manager.enlist(id, TransactionManager.CUSTOMER);
 				removeData(id, cust.getKey());
 
 				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
@@ -472,8 +494,10 @@ public class Middleware implements ResourceManager {
 				return false;
 			}
 			int price = flightRM.queryFlightPrice(id, flightNumber);
+			t_manager.enlist(id, TransactionManager.FLIGHT);
 			if (flightRM.reserveFlight(id, customerID, flightNumber)) {
 				// Item was successfully marked reserved by RM
+				t_manager.enlist(id, TransactionManager.CUSTOMER);
 				cust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
 				writeData(id, cust.getKey(), cust);
@@ -500,8 +524,10 @@ public class Middleware implements ResourceManager {
 				return false;
 			}
 			int price = carRM.queryCarsPrice(id, location);
+			t_manager.enlist(id, TransactionManager.CAR);
 			if (carRM.reserveCar(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
+				t_manager.enlist(id, TransactionManager.CUSTOMER);
 				cust.reserve(Car.getKey(location), location, price);
 				writeData(id, cust.getKey(), cust);
 				return true;
@@ -527,8 +553,10 @@ public class Middleware implements ResourceManager {
 				return false;
 			}
 			int price = roomRM.queryRoomsPrice(id, location);
+			t_manager.enlist(id, TransactionManager.ROOM);
 			if (roomRM.reserveRoom(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
+				t_manager.enlist(id, TransactionManager.CUSTOMER);
 				cust.reserve(Hotel.getKey(location), location, price);
 				writeData(id, cust.getKey(), cust);
 				return true;
@@ -619,7 +647,7 @@ public class Middleware implements ResourceManager {
 		return newTID;//Give the customer its requestion xid
 	}
 	
-	//If the TM tells us to add the transation to
+	//If the TM tells us to add the transaction to
 	public void start(int xid) throws RemoteException {
 		//First test if an entry in the Hash table already exists:
 		if(t_records.get(xid) != null){
