@@ -14,6 +14,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import transaction.InvalidTransactionException;
+import transaction.TransactionAbortedException;
+
 public class ResourceManagerImpl implements ResourceManager {
 
 	protected RMHashtable m_itemHT = new RMHashtable();
@@ -66,7 +69,9 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Writes a data item
 	private void writeData(int id, String key, RMItem value) {
-		m_itemHT.put(key, value);
+		synchronized (m_itemHT) {
+			m_itemHT.put(key, value);
+		}
 	}
 
 	// Remove the item out of storage
@@ -451,17 +456,56 @@ public class ResourceManagerImpl implements ResourceManager {
 			String location, boolean Car, boolean Room) throws RemoteException {
 		return false;
 	}
-	
+
 	public boolean removeReservations(int id, String key, int count) {
 		ReservableItem item = (ReservableItem) readData(id, key);
 		if (item != null) {
 			Trace.info("RM::removing reservations for " + key
 					+ "which is reserved " + item.getReserved()
-					+ " times and is still available " + item.getCount() + " times");
+					+ " times and is still available " + item.getCount()
+					+ " times");
 			item.setReserved(item.getReserved() - count);
 			item.setCount(item.getCount() + count);
 			return true;
 		}
+		return false;
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#start()
+	 */
+	@Override
+	public int start() throws RemoteException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#commit(int)
+	 */
+	@Override
+	public boolean commit(int transactionId) throws RemoteException,
+			TransactionAbortedException, InvalidTransactionException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#abort(int)
+	 */
+	@Override
+	public void abort(int transactionId) throws RemoteException,
+			InvalidTransactionException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#shutdown()
+	 */
+	@Override
+	public boolean shutdown() throws RemoteException {
+		// TODO Auto-generated method stub
 		return false;
 	}
 

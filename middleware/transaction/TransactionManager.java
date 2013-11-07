@@ -1,3 +1,4 @@
+package transaction;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
@@ -14,7 +15,7 @@ public class TransactionManager {
 	protected Hashtable<Integer,Hashtable<String,Integer>> m_transactionManager = new Hashtable<Integer,Hashtable<String,Integer>>();
 	
 	//Setting Transaction Manager
-	TransactionManager(){
+	public TransactionManager(){
 		tid_counter = 1;
 		//transactions = new LinkedList<Transaction>()	
 	}

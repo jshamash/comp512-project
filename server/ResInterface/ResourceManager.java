@@ -1,8 +1,12 @@
 package ResInterface;
 
+
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Vector;
+
+import transaction.InvalidTransactionException;
+import transaction.TransactionAbortedException;
 
 /**
  * Simplified version from CSE 593 Univ. of Washington
@@ -128,5 +132,14 @@ public interface ResourceManager extends Remote {
 	
 	public boolean removeReservations(int id, String key, int count)
 			throws RemoteException;
+	
+	public int start() throws RemoteException;
+	
+	public boolean commit(int transactionId) throws RemoteException, TransactionAbortedException,
+	InvalidTransactionException;
+	
+	public void abort(int transactionId) throws RemoteException, InvalidTransactionException;
+	
+	public boolean shutdown() throws RemoteException;
 
 }

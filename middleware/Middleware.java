@@ -7,13 +7,15 @@ import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.Vector;
 
+import transaction.InvalidTransactionException;
+import transaction.TransactionAbortedException;
+import transaction.TransactionManager;
 import ResImpl.Car;
 import ResImpl.Customer;
 import ResImpl.Flight;
 import ResImpl.Hotel;
 import ResImpl.RMHashtable;
 import ResImpl.RMItem;
-import ResImpl.ReservableItem;
 import ResImpl.ReservedItem;
 import ResImpl.Trace;
 import ResInterface.ResourceManager;
@@ -109,24 +111,7 @@ public class Middleware implements ResourceManager {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
-	}
-
-	//Creating new Start, commit and abort methods here
-	//Start 
-	public int start(){
-		int newTID = -1;
-		
-		synchronized (t_manager){
-			newTID = t_manager.getNewTransactionId();
-			
-			System.out.println("Created new transaction with Transaction ID = "+newTID+".");
-		}
-		
-		return newTID;
-	}
-	
-	
-	
+	}	
 	
 	// Reads a data item
 	private RMItem readData(int id, String key) {
@@ -449,6 +434,49 @@ public class Middleware implements ResourceManager {
 	public boolean removeReservations(int id, String key, int count)
 			throws RemoteException {
 		// We never have to do this!
+		return false;
+	}
+	
+	//Creating new Start, commit and abort methods here
+	//Start 
+	public int start(){
+		int newTID = -1;
+		
+		synchronized (t_manager){
+			newTID = t_manager.getNewTransactionId();
+			
+			System.out.println("Created new transaction with Transaction ID = "+newTID+".");
+		}
+		
+		return newTID;
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#commit(int)
+	 */
+	@Override
+	public boolean commit(int transactionId) throws RemoteException,
+			TransactionAbortedException, InvalidTransactionException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#abort(int)
+	 */
+	@Override
+	public void abort(int transactionId) throws RemoteException,
+			InvalidTransactionException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#shutdown()
+	 */
+	@Override
+	public boolean shutdown() throws RemoteException {
+		// TODO Auto-generated method stub
 		return false;
 	}
 
