@@ -14,6 +14,8 @@ import java.util.Vector;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
 import transaction.TransactionManager;
+import LockManager.DeadlockException;
+import LockManager.LockManager;
 import ResImpl.Car;
 import ResImpl.Customer;
 import ResImpl.Flight;
@@ -31,6 +33,7 @@ public class Middleware implements ResourceManager {
 	static ResourceManager roomRM = null;
 
 	protected RMHashtable m_itemHT = new RMHashtable();
+
 	
 	//Create a transaction hashtable to store transaction data --> this will be used fho the real abort shizzle
 	protected Hashtable<Integer,HashMap<String,RMItem>> t_records = new Hashtable<Integer,HashMap<String,RMItem>>();
@@ -38,17 +41,18 @@ public class Middleware implements ResourceManager {
 	//Our transaction manager
 	TransactionManager t_manager;
 
-	
+
+	LockManager lockManager = new LockManager();
+
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
-	
+
 	public Middleware() throws RemoteException {
 		t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
 		System.out.println("Created tm");
 	}
 
 	public static void main(String args[]) {
-		
 
 		if (args.length != 7) {
 			System.err.println("Wrong usage");
@@ -122,48 +126,94 @@ public class Middleware implements ResourceManager {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
-	}	
-	
+	}
+
 	// Reads a data item
-	private RMItem readData(int id, String key) {
-		synchronized (m_itemHT) {
-			return (RMItem) m_itemHT.get(key);
+	private RMItem readData(int id, String key) throws DeadlockException {
+		boolean lock = false;
+		RMItem item = null;
+
+		// Request a write lock
+		synchronized (lockManager) {
+			lock = lockManager.Lock(id, key, LockManager.READ);
 		}
+
+		if (lock) {
+			// TODO tracking
+			System.out.println("Got a read lock for txn id " + id);
+			item = (RMItem) m_itemHT.get(key);
+		}
+
+		// TODO what happens if we don't get a lock?
+		return item;
 	}
 
 	// Writes a data item
-	private void writeData(int id, String key, RMItem value) {
-		synchronized (m_itemHT) {
-			m_itemHT.put(key, value);
+	private void writeData(int id, String key, RMItem value)
+			throws DeadlockException {
+		boolean lock = false;
+
+		// Request a write lock
+		synchronized (lockManager) {
+			lock = lockManager.Lock(id, key, LockManager.WRITE);
+		}
+		if (lock) {
+			System.out.println("Got a write lock for txn id " + id);
+			// TODO tracking
+			synchronized (m_itemHT) {
+				m_itemHT.put(key, value);
+			}
 		}
 	}
 
 	// Remove the item out of storage
-	protected RMItem removeData(int id, String key) {
-		synchronized (m_itemHT) {
-			return (RMItem) m_itemHT.remove(key);
+	protected RMItem removeData(int id, String key) throws DeadlockException {
+		boolean lock = false;
+		RMItem item = null;
+
+		// Request a write lock
+		synchronized (lockManager) {
+			lock = lockManager.Lock(id, key, LockManager.WRITE);
 		}
+		if (lock) {
+			System.out.println("Got a write lock for txn id " + id);
+			// TODO tracking
+			synchronized (m_itemHT) {
+				item = (RMItem) m_itemHT.remove(key);
+			}
+		}
+		// TODO what happens if we don't get a lock?
+		return item;
 	}
 
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
-		synchronized (flightRM) {
+		try {
 			return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
+		} catch (DeadlockException e) {
+			// TODO abort
 		}
+		return false;
 	}
 
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException {
-		synchronized (carRM) {
+		try {
 			return carRM.addCars(id, location, numCars, price);
+		} catch (DeadlockException e) {
+			// TODO abort
 		}
+		return false;
 	}
 
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException {
-		synchronized (roomRM) {
+		try {
 			return roomRM.addRooms(id, location, numRooms, price);
+		} catch (DeadlockException e) {
+			// TODO abort
 		}
+		return false;
 	}
 
 	public int newCustomer(int id) throws RemoteException {
@@ -174,7 +224,11 @@ public class Middleware implements ResourceManager {
 						Calendar.MILLISECOND))
 				+ String.valueOf(Math.round(Math.random() * 100 + 1)));
 		Customer cust = new Customer(cid);
-		writeData(id, cust.getKey(), cust);
+		try {
+			writeData(id, cust.getKey(), cust);
+		} catch (DeadlockException e) {
+			// TODO Abort
+		}
 		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
 		return cid;
 	}
@@ -182,149 +236,200 @@ public class Middleware implements ResourceManager {
 	public boolean newCustomer(int id, int customerID) throws RemoteException {
 		Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
 				+ ") called");
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			cust = new Customer(customerID);
-			writeData(id, cust.getKey(), cust);
-			Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
-					+ ") created a new customer");
-			return true;
-		} else {
-			Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
-					+ ") failed--customer already exists");
-			return false;
-		} // else
+		try {
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				cust = new Customer(customerID);
+				writeData(id, cust.getKey(), cust);
+				Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
+						+ ") created a new customer");
+				return true;
+			} else {
+				Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
+						+ ") failed--customer already exists");
+				return false;
+			}
+		} catch (DeadlockException e) {
+			// TODO Abort
+		}
+		return false;
 	}
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
-		synchronized (flightRM) {
+		try {
 			return flightRM.deleteFlight(id, flightNum);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	public boolean deleteCars(int id, String location) throws RemoteException {
-		synchronized (carRM) {
+		try {
 			return carRM.deleteCars(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	public boolean deleteRooms(int id, String location) throws RemoteException {
-		synchronized (roomRM) {
+		try {
 			return roomRM.deleteRooms(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	public boolean deleteCustomer(int id, int customerID)
 			throws RemoteException {
 		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called");
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::deleteCustomer(" + id + ", " + customerID
-					+ ") failed--customer doesn't exist");
-			return false;
-		} else {
-			// Increase the reserved numbers of all reservable items which the
-			// customer reserved.
-			RMHashtable reservationHT = cust.getReservations();
-			for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {
-				String reservedkey = (String) (e.nextElement());
-				ReservedItem reserveditem = cust.getReservedItem(reservedkey);
-				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
-						+ ") has reserved " + reserveditem.getKey() + " "
-						+ reserveditem.getCount() + " times");
+		try {
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				Trace.warn("RM::deleteCustomer(" + id + ", " + customerID
+						+ ") failed--customer doesn't exist");
+				return false;
+			} else {
+				// Increase the reserved numbers of all reservable items which
+				// the
+				// customer reserved.
+				RMHashtable reservationHT = cust.getReservations();
+				for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {
+					String reservedkey = (String) (e.nextElement());
+					ReservedItem reserveditem = cust
+							.getReservedItem(reservedkey);
+					Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+							+ ") has reserved " + reserveditem.getKey() + " "
+							+ reserveditem.getCount() + " times");
 
-				String key = reserveditem.getKey();
-				String type = key.split("-")[0];
-				System.out.println(type);
-				
-				if(type.equals("car")){
-					carRM.removeReservations(id, key, reserveditem.getCount());
-				}else if(type.equals("room")){
-					roomRM.removeReservations(id, key, reserveditem.getCount());
-				}else if(type.equals("flight")){
-					flightRM.removeReservations(id, key, reserveditem.getCount());
-				}else{
-					carRM.removeReservations(id, key, reserveditem.getCount());
-					roomRM.removeReservations(id, key, reserveditem.getCount());
-					flightRM.removeReservations(id, key, reserveditem.getCount());
+					String key = reserveditem.getKey();
+					String type = key.split("-")[0];
+					System.out.println(type);
+					if (type.equals("car")) {
+						carRM.removeReservations(id, key,
+								reserveditem.getCount());
+					} else if (type.equals("room")) {
+						roomRM.removeReservations(id, key,
+								reserveditem.getCount());
+					} else if (type.equals("flight")) {
+						flightRM.removeReservations(id, key,
+								reserveditem.getCount());
+					} else {
+						carRM.removeReservations(id, key,
+								reserveditem.getCount());
+						roomRM.removeReservations(id, key,
+								reserveditem.getCount());
+						flightRM.removeReservations(id, key,
+								reserveditem.getCount());
+					}
+
 				}
+
+				// remove the customer from the storage
+				removeData(id, cust.getKey());
+
+				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
+						+ ") succeeded");
+				return true;
 			}
-
-			// remove the customer from the storage
-			removeData(id, cust.getKey());
-
-			Trace.info("RM::deleteCustomer(" + id + ", " + customerID
-					+ ") succeeded");
-			return true;
-		} // if
+		} catch (DeadlockException e) {
+			// TODO Abort
+		}
+		return false;
 	}
 
 	public int queryFlight(int id, int flightNumber) throws RemoteException {
-		synchronized (flightRM) {
+		try {
 			return flightRM.queryFlight(id, flightNumber);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public int queryCars(int id, String location) throws RemoteException {
-		synchronized (carRM) {
+		try {
 			return carRM.queryCars(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public int queryRooms(int id, String location) throws RemoteException {
-		synchronized (roomRM) {
+		try {
 			return roomRM.queryRooms(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public String queryCustomerInfo(int id, int customerID)
 			throws RemoteException {
 		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
 				+ ") called");
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
-					+ ") failed--customer doesn't exist");
-			return ""; // NOTE: don't change this--WC counts on this value
-						// indicating a customer does not exist...
-		} else {
-			String s = cust.printBill();
-			Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
-					+ "), bill follows...");
-			System.out.println(s);
-			return s;
+		try {
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
+						+ ") failed--customer doesn't exist");
+				return ""; // NOTE: don't change this--WC counts on this value
+							// indicating a customer does not exist...
+			} else {
+				String s = cust.printBill();
+				Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
+						+ "), bill follows...");
+				System.out.println(s);
+				return s;
+			}
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return "";
 	}
 
 	public int queryFlightPrice(int id, int flightNumber)
 			throws RemoteException {
-		synchronized (flightRM) {
+		try {
 			return flightRM.queryFlightPrice(id, flightNumber);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public int queryCarsPrice(int id, String location) throws RemoteException {
-		synchronized (carRM) {
+		try {
 			return carRM.queryCarsPrice(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public int queryRoomsPrice(int id, String location) throws RemoteException {
-		synchronized (roomRM) {
+		try {
 			return roomRM.queryRoomsPrice(id, location);
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return 0;
 	}
 
 	public boolean reserveFlight(int id, int customerID, int flightNumber)
 			throws RemoteException {
-		// Read customer object if it exists (and read lock it)
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::reserveFlight( " + id + ", " + customerID + ", "
-					+ flightNumber + ")  failed--customer doesn't exist");
-			return false;
-		}
-		synchronized (flightRM) {
+		try {
+			// Read customer object if it exists (and read lock it)
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				Trace.warn("RM::reserveFlight( " + id + ", " + customerID
+						+ ", " + flightNumber
+						+ ")  failed--customer doesn't exist");
+				return false;
+			}
 			int price = flightRM.queryFlightPrice(id, flightNumber);
 			if (flightRM.reserveFlight(id, customerID, flightNumber)) {
 				// Item was successfully marked reserved by RM
@@ -332,57 +437,69 @@ public class Middleware implements ResourceManager {
 						String.valueOf(flightNumber), price);
 				writeData(id, cust.getKey(), cust);
 				return true;
-			} // else
+			}
+
 			Trace.warn("MW::reserveFlight( " + id + ", " + customerID + ", "
 					+ flightNumber + ")  failed--RM returned false");
 			return false;
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	public boolean reserveCar(int id, int customerID, String location)
 			throws RemoteException {
-		// Read customer object if it exists (and read lock it)
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::reserveCar( " + id + ", " + customerID + ", "
-					+ location + ")  failed--customer doesn't exist");
-			return false;
-		}
-		synchronized (carRM) {
+		try {
+			// Read customer object if it exists (and read lock it)
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				Trace.warn("RM::reserveCar( " + id + ", " + customerID + ", "
+						+ location + ")  failed--customer doesn't exist");
+				return false;
+			}
 			int price = carRM.queryCarsPrice(id, location);
 			if (carRM.reserveCar(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
 				cust.reserve(Car.getKey(location), location, price);
 				writeData(id, cust.getKey(), cust);
 				return true;
-			} // else
+			}
+
 			Trace.warn("MW::reserveCar( " + id + ", " + customerID + ", "
 					+ location + ")  failed--RM returned false");
 			return false;
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	public boolean reserveRoom(int id, int customerID, String location)
 			throws RemoteException {
-		// Read customer object if it exists (and read lock it)
-		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
-		if (cust == null) {
-			Trace.warn("RM::reserveRoom( " + id + ", " + customerID + ", "
-					+ location + ")  failed--customer doesn't exist");
-			return false;
-		}
-		synchronized (roomRM) {
+		try {
+			// Read customer object if it exists (and read lock it)
+			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+			if (cust == null) {
+				Trace.warn("RM::reserveRoom( " + id + ", " + customerID + ", "
+						+ location + ")  failed--customer doesn't exist");
+				return false;
+			}
 			int price = roomRM.queryRoomsPrice(id, location);
 			if (roomRM.reserveRoom(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
 				cust.reserve(Hotel.getKey(location), location, price);
 				writeData(id, cust.getKey(), cust);
 				return true;
-			} // else
+			}
+
 			Trace.warn("MW::reserveRoom( " + id + ", " + customerID + ", "
 					+ location + ")  failed--RM returned false");
 			return false;
+		} catch (DeadlockException e) {
+			// TODO Abort
 		}
+		return false;
 	}
 
 	/**
@@ -447,10 +564,10 @@ public class Middleware implements ResourceManager {
 		// We never have to do this!
 		return false;
 	}
-	
-	//Creating new Start, commit and abort methods here
-	//Start 
-	public int start(){
+
+	// Creating new Start, commit and abort methods here
+	// Start
+	public int start() {
 		int newTID = -1;
 		
 		synchronized (t_manager){
@@ -476,7 +593,9 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	@Override
@@ -507,11 +626,12 @@ public class Middleware implements ResourceManager {
 		}
 		
 		System.out.println("Successfully found and removed hash table TID: "+ xid + " from room/flight/car RMs.");
-		
 		return true;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
 	public void abort(int xid) throws RemoteException, InvalidTransactionException {
@@ -555,17 +675,19 @@ public class Middleware implements ResourceManager {
 			}
 			
 			System.out.println("Successfully aborted aborted transaction "+xid+" from customer RM.");
-			
+
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
 	public boolean shutdown() throws RemoteException {
 		boolean success = false;
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
-		
+
 		UnicastRemoteObject.unexportObject(this, true);
 		// Unbind self from the registry
 		Registry registry = LocateRegistry.getRegistry(rmiPort);
@@ -575,7 +697,7 @@ public class Middleware implements ResourceManager {
 			System.out.println("Couldn't unbind self from registry");
 			return false;
 		}
-		
+
 		// Kill process in separate thread in order to let method return
 		new Thread() {
 			@Override
@@ -590,8 +712,7 @@ public class Middleware implements ResourceManager {
 				System.exit(0);
 			}
 		}.start();
-		
+
 		return success;
 	}
-
 }
