@@ -69,6 +69,43 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	public ResourceManagerImpl() throws RemoteException {
 	}
+	
+	private void record(int xid, String key, RMItem newItem) {
+		// Get the record for this txn
+		HashMap<String, RMItem> record = t_records.get(xid);
+		if (record == null) {
+			// We are trying to update the record of a nonexistent txn!
+			System.err.println("No record for this transaction " + xid);
+			return;
+		}
+		if (record.containsKey(key)) {
+			System.err.println("Already have a record for this operation "
+					+ key);
+			return;
+		}
+		// Haven't recorded this operation yet
+		RMItem pastItem = (RMItem) m_itemHT.get(key);
+		if (pastItem == null && newItem == null) {
+			// We're trying to read or delete an item that's not even there
+			return;
+		}
+		if (pastItem == null) {
+			// We're trying to write a new item
+			record.put(key, null);
+		} else {
+			// We're reading, deleting, or overwriting an item
+			RMItem copy = (RMItem) DeepCopy.copy(pastItem);
+			if (copy == null) {
+				System.err.println("Couldn't copy this item -- not serializable");
+				return;
+			}
+			System.out.println("Recording past item " + copy + " - "
+					+ copy.hashCode());
+			System.out.println("The new item is ging to be " + newItem + " - "
+					+ newItem.hashCode());
+			record.put(key, copy);
+		}
+	}
 
 	// Reads a data item
 	private RMItem readData(int id, String key) throws DeadlockException {
@@ -81,8 +118,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		}
 
 		if (lock) {
-			// TODO tracking
 			System.out.println("Got a read lock for txn id " + id);
+			this.record(id, key, null);
 			item = (RMItem) m_itemHT.get(key);
 		}
 
@@ -93,16 +130,15 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Writes a data item
 	private void writeData(int id, String key, RMItem value)
 			throws DeadlockException {
-
 		boolean lock = false;
-		
+
 		// Request a write lock
 		synchronized (lockManager) {
 			lock = lockManager.Lock(id, key, LockManager.WRITE);
 		}
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
-			// TODO tracking
+			this.record(id, key, value);
 			synchronized (m_itemHT) {
 				m_itemHT.put(key, value);
 			}
@@ -120,7 +156,7 @@ public class ResourceManagerImpl implements ResourceManager {
 		}
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
-			// TODO tracking
+			this.record(id, key, null);
 			synchronized (m_itemHT) {
 				item = (RMItem) m_itemHT.remove(key);
 			}
