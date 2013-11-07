@@ -181,7 +181,7 @@ public class Middleware implements ResourceManager {
 
 		if (lock) {
 			System.out.println("Got a read lock for txn id " + id);
-			this.record(id, key, null);
+			//this.record(id, key, null);
 			item = (RMItem) m_itemHT.get(key);
 		}
 
