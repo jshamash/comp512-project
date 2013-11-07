@@ -855,4 +855,11 @@ public class Middleware implements ResourceManager {
 
 		return success;
 	}
+	
+	public void dump() throws RemoteException {
+		m_itemHT.dump();
+		carRM.dump();
+		roomRM.dump();
+		flightRM.dump();
+	}
 }

@@ -687,5 +687,9 @@ public class ResourceManagerImpl implements ResourceManager {
 		// ever called
 		return 0;
 	}
+	
+	public void dump() throws RemoteException {
+		m_itemHT.dump();
+	}
 
 }

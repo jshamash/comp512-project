@@ -139,5 +139,10 @@ public interface ResourceManager extends Remote {
 	public void abort(int xid) throws RemoteException, InvalidTransactionException;
 	
 	public boolean shutdown() throws RemoteException;
+	
+	/**
+	 * Prints the content of this RM's hashtable (for debugging purposes).
+	 */
+	public void dump() throws RemoteException;
 
 }

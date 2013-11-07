@@ -636,6 +636,19 @@ public class Client {
 					e.printStackTrace();
 				}
 				break;
+				
+			case 27:
+				if (arguments.size() != 1) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					rm.dump();
+				} catch (RemoteException e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
 
 			default:
 				System.out
@@ -710,6 +723,8 @@ public class Client {
 			return 25;
 		else if (argument.compareToIgnoreCase("shutdown") == 0)
 			return 26;
+		else if (argument.compareToIgnoreCase("dump") == 0)
+			return 27;
 		else
 			return 666;
 
@@ -958,6 +973,14 @@ public class Client {
 			System.out.println("\tShutdown the system");
 			System.out.println("\nUsage:");
 			System.out.println("\tshutdown");
+			break;
+			
+		case 27: // dump
+			System.out.println("Dump hashtable contents");
+			System.out.println("Purpose:");
+			System.out.println("\tDebugging");
+			System.out.println("\nUsage:");
+			System.out.println("\tdump");
 			break;
 
 		default:
