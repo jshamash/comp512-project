@@ -2,7 +2,7 @@
 
 VAR=${PWD}
 
-export CLASSPATH="$VAR/server/"
+export CLASSPATH=$VAR/server/:$VAR/middleware/
 
 #Setting values for server name and server port
 if [ $# -eq 2 ];then
@@ -19,4 +19,4 @@ echo "Starting client..."
 cd ./client/
 echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; };" > client.policy
 javac *.java
-java -Djava.security.policy=client.policy -classpath .:../server Client $SERVERNAME $PORT
+java -Djava.security.policy=client.policy -classpath .:../server:../middleware Client $SERVERNAME $PORT

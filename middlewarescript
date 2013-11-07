@@ -11,7 +11,7 @@
 
 VAR=${PWD}
 
-export CLASSPATH="$VAR/server/"
+export CLASSPATH=$VAR/server/:$VAR/middleware
 
 if [ $# -eq 7 ];then
 	
@@ -46,5 +46,5 @@ rmiregistry $PORT &
 echo "Starting middleware..."
 cd ./middleware/
 echo "grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; };" > middleware.policy
-javac *.java LockManager/*.java
+javac *.java LockManager/*.java transaction/*.java
 java -Djava.security.policy=middleware.policy -classpath .:../server Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
