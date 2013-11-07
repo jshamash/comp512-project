@@ -64,6 +64,20 @@ public class LockManager
                             // lock conversion 
                             // *** ADD CODE HERE *** to carry out the lock conversion in the
                             // lock table
+                        	
+                        	//Start by removing both XObj from the lock table
+                        	TrxnObj tempTrans = (TrxnObj)(trxnObj.clone());
+                        	tempTrans.setLockType(TrxnObj.READ);
+                        	tempTrans = (TrxnObj)this.lockTable.get(tempTrans);
+                        	tempTrans.setLockType(TrxnObj.WRITE);
+                        	
+                        	DataObj tempData = (DataObj)(dataObj.clone());
+                        	tempData.setLockType(DataObj.READ);
+                        	tempData = (DataObj)this.lockTable.get(tempData);
+                        	tempData.setLockType(DataObj.WRITE);   
+                        	
+                        	System.out.println("Converting READ lock to WRITE lock");
+                        	
                         } else {
                             // a lock request that is not lock conversion
                             this.lockTable.add(trxnObj);
@@ -185,6 +199,8 @@ public class LockManager
         DataObj dataObj2;
         int size = vect.size();
         
+        boolean changeBitset = false;
+        
         // as soon as a lock that conflicts with the current lock request is found, return true
         for (int i = 0; i < size; i++) {
             dataObj2 = (DataObj) vect.elementAt(i);
@@ -201,21 +217,21 @@ public class LockManager
                     // now there are two cases to analyze here
                     // (1) transaction already had a READ lock
                     // (2) transaction already had a WRITE lock
-                    // Seeing the comments at the top of this function might be helpful
-                	if (dataObj2.getLockType() == WRITE) {
+                	// Seeing the comments at the top of this function might be helpful
+                    // *** ADD CODE HERE *** to take care of both these cases
+                	
+                	if(dataObj2.getLockType()==DataObj.WRITE)
                 		throw new RedundantLockRequestException(dataObj.getXId(), "Redundant WRITE lock request");
-                	}
-                	else if (dataObj2.getLockType() == READ) {
-                		// Verify that no one else has a lock.
-                		if (size > 1) {
-            				// At least one other person has a read lock
-            				return true;
-            			}
-                		else {
-	                		// Upgrade from read to write lock
-	                		bitset.set(0, true);
-                		}
-                	}
+                	
+                	        
+			//We see that there were no conflict, but what if we have a conversion
+			if(size>1){
+				return true;	
+			}else{
+				bitset.set(0,true);
+				return false;
+			}
+                    
                 }
             } 
             else {

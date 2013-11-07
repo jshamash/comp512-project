@@ -1,5 +1,0 @@
-grant codeBase "file:$HOME/comp512/comp512-project/server" {
-    permission java.security.AllPermission;
-};
-
-

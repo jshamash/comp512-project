@@ -20,6 +20,14 @@ import java.util.Vector;
  */
 
 public interface ResourceManager extends Remote {
+	
+	//public int start() throws RemoteException;
+	
+	//public int commit() throws RemoteException;
+	
+	//public int abort() throws RemoteException; 
+	
+	
 	/*
 	 * Add seats to a flight. In general this will be used to create a new
 	 * flight, but it should be possible to add seats to an existing flight.

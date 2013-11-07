@@ -25,6 +25,10 @@ public class Middleware implements ResourceManager {
 	static ResourceManager roomRM = null;
 
 	protected RMHashtable m_itemHT = new RMHashtable();
+	
+	
+	//Our transaction manager
+	TransactionManager t_manager = new TransactionManager();
 
 	public Middleware() throws RemoteException {
 	}
@@ -107,6 +111,23 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
+	//Creating new Start, commit and abort methods here
+	//Start 
+	public int start(){
+		int newTID = -1;
+		
+		synchronized (t_manager){
+			newTID = t_manager.getNewTransactionId();
+			
+			System.out.println("Created new transaction with Transaction ID = "+newTID+".");
+		}
+		
+		return newTID;
+	}
+	
+	
+	
+	
 	// Reads a data item
 	private RMItem readData(int id, String key) {
 		synchronized (m_itemHT) {
@@ -219,17 +240,14 @@ public class Middleware implements ResourceManager {
 				String key = reserveditem.getKey();
 				String type = key.split("-")[0];
 				System.out.println(type);
-				switch (type) {
-				case "car":
+				
+				if(type.equals("car")){
 					carRM.removeReservations(id, key, reserveditem.getCount());
-					break;
-				case "room":
+				}else if(type.equals("room")){
 					roomRM.removeReservations(id, key, reserveditem.getCount());
-					break;
-				case "flight":
+				}else if(type.equals("flight")){
 					flightRM.removeReservations(id, key, reserveditem.getCount());
-					break;
-				default:
+				}else{
 					carRM.removeReservations(id, key, reserveditem.getCount());
 					roomRM.removeReservations(id, key, reserveditem.getCount());
 					flightRM.removeReservations(id, key, reserveditem.getCount());
