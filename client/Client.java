@@ -649,6 +649,7 @@ public class Client {
 					System.out.println(e.getMessage());
 					e.printStackTrace();
 				}
+				break;
 
 			default:
 				System.out
@@ -741,7 +742,7 @@ public class Client {
 				.println("deletecustomer\nqueryflight\nquerycar\nqueryroom\nquerycustomer");
 		System.out.println("queryflightprice\nquerycarprice\nqueryroomprice");
 		System.out.println("reserveflight\nreservecar\nreserveroom\nitinerary");
-		System.out.println("start\ncommit\nabort\nshutdown");
+		System.out.println("start\ncommit\nabort\nshutdown\ndump");
 		System.out.println("quit");
 		System.out
 				.println("\ntype help, <commandname> for detailed info(NOTE the use of comma).");
