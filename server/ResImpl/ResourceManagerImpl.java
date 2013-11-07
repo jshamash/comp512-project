@@ -478,9 +478,16 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Creates an entry in the transaction abort table
 	@Override
 	public void start(int xid) throws RemoteException {
-		synchronized (t_records) {
-			// Create new HashTable entry in the transactions table
+		//First test if an entry in the Hash table already exists:
+		if(t_records.get(xid) != null){
+			System.out.println("A hash table record already exists in customer RM for transaction ID: "+xid);
+			return;
+		}
+		
+		//Now create an entry in this transaction records hash table
+		synchronized (t_records){
 			t_records.put(xid, new HashMap<String, RMItem>());
+			System.out.println("RM has successfully create a hash map entry for TID: "+xid);
 		}
 	}
 
@@ -489,8 +496,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * 
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
-	public boolean commit(int xid) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
+	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
 		// Start by removing the hashtable entry for this transaction ID inside
 		// the transaction record
 		Object removedObject = t_records.remove(xid);
@@ -509,35 +515,44 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * 
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
-	public void abort(int xid) throws RemoteException,
-			InvalidTransactionException {
+	public void abort(int xid) throws RemoteException,InvalidTransactionException {
 		// Start by removing the hashtable entry for this transaction ID inside
 		// the transaction records table
 		HashMap<String, RMItem> r_table = t_records.remove(xid);
 
-		if (r_table != null) {
+		if(r_table == null)	{
+			System.out.println("TID: "+ xid + " has no hashtable entry in RM.");
+		}else{
+			System.out.println(r_table.size() + " entries have been found in the hash table");
+			
 			Set<String> keys = r_table.keySet();
 			RMItem tmp_item;
 
-			// Loop through all elements in the removed hash table and reset
-			// their original value inside the RM's hash table
-			for (String key : keys) {
-				tmp_item = (RMItem) r_table.get(key);
-
-				if (tmp_item == null) {
-					// We need to remove this item from the RM's hash table
-					m_itemHT.remove(key);
-				} else {
-					// We need to add this item to this RM's hash table
-					m_itemHT.put(key, (RMItem) tmp_item);
+			//We need to synchonize m_itemHT since we are now changing values in the table
+			synchronized (m_itemHT){
+				// Loop through all elements in the removed hash table and reset
+				// their original value inside the RM's hash table
+				for (String key : keys) {
+					tmp_item = (RMItem) r_table.get(key);
+	
+					if(tmp_item==null)
+					{
+						System.out.println("We need to remove  element-key: "+key+" item from the RM's hash table.");
+						//We need to remove this item from the RM's hash table
+						m_itemHT.remove(key);
+					}else{
+						System.out.println("We need to add  element-key: "+key+" item to the RM's hash table.");
+						//We need to add this item to this RM's hash table
+						m_itemHT.put(key, (RMItem)tmp_item);
+					}
 				}
 			}
+			
+			// Now unlock all locks related to the xid
+			// TODO: something like: lockManager.unlockAll(xid);
+			// does not need to be synchronized, since unlockAll method takes care of that
+			
 		}
-
-		// Now unlock all locks related to the xid
-		// TODO: something like: lockManager.unlockAll(xid); //--> does not need
-		// to be synchronized, since unlockAll method takes care of that
-
 	}
 
 	/*

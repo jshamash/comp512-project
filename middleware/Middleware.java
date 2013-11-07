@@ -36,13 +36,15 @@ public class Middleware implements ResourceManager {
 	protected Hashtable<Integer,HashMap<String,RMItem>> t_records = new Hashtable<Integer,HashMap<String,RMItem>>();
 	
 	//Our transaction manager
-	TransactionManager t_manager = new TransactionManager();
+	TransactionManager t_manager;
 
 	
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
 	
 	public Middleware() throws RemoteException {
+		t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
+		System.out.println("Created tm");
 	}
 
 	public static void main(String args[]) {
@@ -110,7 +112,7 @@ public class Middleware implements ResourceManager {
 			// Bind the remote object's stub in the registry
 			registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind("Group1ResourceManager", rm);
-
+			
 			System.err.println("Server ready");
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
@@ -453,27 +455,25 @@ public class Middleware implements ResourceManager {
 		
 		synchronized (t_manager){
 			//Get a brand new fresh id for this newly created transaction
-			newTID = t_manager.getNewTransactionId();
+			newTID = t_manager.start();
+		}
+		
+		return newTID;//Give the customer its requestion xid
+	}
+	
+	//If the TM tells us to add the transation to
+	public void start(int xid) throws RemoteException {
+		//First test if an entry in the Hash table already exists:
+		if(t_records.get(xid) != null){
+			System.out.println("A hash table record already exists in customer RM for transaction ID: "+xid);
+			return;
 		}
 		
 		//Now create an entry in this transaction records hash table
 		synchronized (t_records){
-			t_records.put(newTID, new HashMap<String, RMItem>());
+			t_records.put(xid, new HashMap<String, RMItem>());
+			System.out.println("Customer RM has successfully create a hash map entry for TID: "+xid);
 		}
-		
-		System.out.println("Created new transaction with Transaction ID = "+newTID+".");
-		
-		//Now call the start function on each of the rms to initialize they transaction records
-		try{
-			roomRM.start(newTID);
-			carRM.start(newTID);
-			flightRM.start(newTID);
-		}catch(RemoteException e){
-			//Shouldnt happen ... why is prof asking us to throw this?
-			System.out.println(e.toString());
-		}
-		
-		return newTID;//Give the customer its requestion xid
 	}
 
 	/* (non-Javadoc)
@@ -481,24 +481,32 @@ public class Middleware implements ResourceManager {
 	 */
 	@Override
 	public boolean commit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException {
-		//Start by removing the hashtable entry for this transaction ID inside the transaction record
-		Object removedObject = t_records.remove(xid);
-		if(removedObject==null) return false;//if there was no hash table fho dis transaction ID
+		//Start by calling the commit function in the Transaction Manager
+		//This tells us whether we have to execute commit on the customer hash table
 		
+		Object removedObject = t_records.remove(xid);
+		if(removedObject==null){
+			System.out.println("TID: "+ xid + " has no hashtable entry in customer RM.");
+			return false;//if there was no hash table fho dis transaction ID
+		}
+		
+		System.out.println("Successfully found and removed hash table TID: "+ xid + " from customer RM.");
 		
 		//Now unlock all locks related to the xid
 		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
 					
-
 		try{
-			if(!carRM.commit(xid) || !roomRM.commit(xid) || !flightRM.commit(xid))
+			if(!carRM.commit(xid) || !roomRM.commit(xid) || !flightRM.commit(xid)){
+				System.out.println("TID: "+ xid + " has no hashtable entry in one of room/flight/car RM.");
 				return false;
+			}
 		}catch(Exception e){
 			//Should not go there, but just in case
 			System.out.println("One RM sent an exception when trying to commit.");
 			return false;
 		}
 		
+		System.out.println("Successfully found and removed hash table TID: "+ xid + " from room/flight/car RMs.");
 		
 		return true;
 	}
@@ -507,38 +515,47 @@ public class Middleware implements ResourceManager {
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
 	public void abort(int xid) throws RemoteException, InvalidTransactionException {
-		//Start by removing the hashtable entry for this transaction ID inside the transaction records table
-		HashMap<String, RMItem> r_table = t_records.remove(xid);
-		
-		if(r_table != null)
-		{
-			Set<String> keys = r_table.keySet();
-			RMItem tmp_item;
+		//Call TM abort to abort rms, and to tell this function if customer also has to abort
+		if(t_manager.abort(xid)){
 			
-			//Loop through all elements in the removed hash table and reset their original value inside the RM's hash table
-			for (String key : keys){
-				tmp_item = (RMItem)r_table.get(key);
+			System.out.println("Attempting to abort transaction "+ xid+ " from customer RM.");
+			
+			HashMap<String, RMItem> r_table = t_records.remove(xid);
+			
+			if(r_table == null)	{
+				System.out.println("TID: "+ xid + " has no hashtable entry in RM.");
+			}else{
+				System.out.println(r_table.size() + " entries have been found in the hash table");
 				
-				if(tmp_item==null)
-				{
-					//We need to remove this item from the RM's hash table
-					m_itemHT.remove(key);
-				}else{
-					//We need to add this item to this RM's hash table
-					m_itemHT.put(key, (RMItem)tmp_item);
+				Set<String> keys = r_table.keySet();
+				RMItem tmp_item;
+				
+				synchronized(m_itemHT){
+					//Loop through all elements in the removed hash table and reset their original value inside the RM's hash table
+					for (String key : keys){
+						tmp_item = (RMItem)r_table.get(key);
+						
+						if(tmp_item==null)
+						{
+							System.out.println("We need to remove  element-key: "+key+" item from the RM's hash table.");
+							//We need to remove this item from the RM's hash table
+							m_itemHT.remove(key);
+						}else{
+							System.out.println("We need to add  element-key: "+key+" item to the RM's hash table.");
+							//We need to add this item to this RM's hash table
+							m_itemHT.put(key, (RMItem)tmp_item);
+						}
+					}
 				}
+				
+				//Now unlock all locks related to the xid
+				//TODO: something like: lockManager.unlockAll(xid); 
+				//--> does not need to be synchronized, since unlockAll method takes care of that
+				
 			}
-		}
-		
-		
-		//Now unlock all locks related to the xid
-		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
-		
-		
-		//Now call abort on each of the RMs
-		try{
 			
-		}catch(Exception e){//What do we do
+			System.out.println("Successfully aborted aborted transaction "+xid+" from customer RM.");
+			
 		}
 	}
 
@@ -575,13 +592,6 @@ public class Middleware implements ResourceManager {
 		}.start();
 		
 		return success;
-	}
-
-	
-	//USELESS METHODS
-	public void start(int xid) throws RemoteException {
-		// TODO Auto-generated method stub
-		
 	}
 
 }
