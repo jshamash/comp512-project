@@ -40,7 +40,7 @@ public class TransactionManager {
 	//Check if the transaction has started an the RM specified with the rm_id
 	//If not started, do nothing and return
 	//If not started, start rm with xid and insert rm_id into list
-	public void extend(int xid, int rm_id){
+	public void enlist(int xid, int rm_id){
 		LinkedList<Integer> rm_list = rm_records.get(xid);
 		
 		//If the rm is already in the list, return true, otherwise add to rm_records list
