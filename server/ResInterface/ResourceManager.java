@@ -25,13 +25,6 @@ import transaction.TransactionAbortedException;
 
 public interface ResourceManager extends Remote {
 	
-	//public int start() throws RemoteException;
-	
-	//public int commit() throws RemoteException;
-	
-	//public int abort() throws RemoteException; 
-	
-	
 	/*
 	 * Add seats to a flight. In general this will be used to create a new
 	 * flight, but it should be possible to add seats to an existing flight.
@@ -135,10 +128,12 @@ public interface ResourceManager extends Remote {
 	
 	public int start() throws RemoteException;
 	
-	public boolean commit(int transactionId) throws RemoteException, TransactionAbortedException,
+	public void start(int xid) throws RemoteException;
+	
+	public boolean commit(int xid) throws RemoteException, TransactionAbortedException,
 	InvalidTransactionException;
 	
-	public void abort(int transactionId) throws RemoteException, InvalidTransactionException;
+	public void abort(int xid) throws RemoteException, InvalidTransactionException;
 	
 	public boolean shutdown() throws RemoteException;
 

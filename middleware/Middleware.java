@@ -5,6 +5,9 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Calendar;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Set;
 import java.util.Vector;
 
 import transaction.InvalidTransactionException;
@@ -28,6 +31,8 @@ public class Middleware implements ResourceManager {
 
 	protected RMHashtable m_itemHT = new RMHashtable();
 	
+	//Create a transaction hashtable to store transaction data --> this will be used fho the real abort shizzle
+	protected Hashtable<Integer,HashMap<String,RMItem>> t_records = new Hashtable<Integer,HashMap<String,RMItem>>();
 	
 	//Our transaction manager
 	TransactionManager t_manager = new TransactionManager();
@@ -443,41 +448,109 @@ public class Middleware implements ResourceManager {
 		int newTID = -1;
 		
 		synchronized (t_manager){
+			//Get a brand new fresh id for this newly created transaction
 			newTID = t_manager.getNewTransactionId();
-			
-			System.out.println("Created new transaction with Transaction ID = "+newTID+".");
 		}
 		
-		return newTID;
+		//Now create an entry in this transaction records hash table
+		synchronized (t_records){
+			t_records.put(newTID, new HashMap<String, RMItem>());
+		}
+		
+		System.out.println("Created new transaction with Transaction ID = "+newTID+".");
+		
+		//Now call the start function on each of the rms to initialize they transaction records
+		try{
+			roomRM.start(newTID);
+			carRM.start(newTID);
+			flightRM.start(newTID);
+		}catch(RemoteException e){
+			//Shouldnt happen ... why is prof asking us to throw this?
+			System.out.println(e.toString());
+		}
+		
+		return newTID;//Give the customer its requestion xid
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	@Override
-	public boolean commit(int transactionId) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean commit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+		//Start by removing the hashtable entry for this transaction ID inside the transaction record
+		Object removedObject = t_records.remove(xid);
+		if(removedObject==null) return false;//if there was no hash table fho dis transaction ID
+		
+		
+		//Now unlock all locks related to the xid
+		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
+					
+
+		try{
+			if(!carRM.commit(xid) || !roomRM.commit(xid) || !flightRM.commit(xid))
+				return false;
+		}catch(Exception e){
+			//Should not go there, but just in case
+			System.out.println("One RM sent an exception when trying to commit.");
+			return false;
+		}
+		
+		
+		return true;
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
-	@Override
-	public void abort(int transactionId) throws RemoteException,
-			InvalidTransactionException {
-		// TODO Auto-generated method stub
+	public void abort(int xid) throws RemoteException, InvalidTransactionException {
+		//Start by removing the hashtable entry for this transaction ID inside the transaction records table
+		HashMap<String, RMItem> r_table = t_records.remove(xid);
 		
+		if(r_table != null)
+		{
+			Set<String> keys = r_table.keySet();
+			RMItem tmp_item;
+			
+			//Loop through all elements in the removed hash table and reset their original value inside the RM's hash table
+			for (String key : keys){
+				tmp_item = (RMItem)r_table.get(key);
+				
+				if(tmp_item==null)
+				{
+					//We need to remove this item from the RM's hash table
+					m_itemHT.remove(key);
+				}else{
+					//We need to add this item to this RM's hash table
+					m_itemHT.put(key, (RMItem)tmp_item);
+				}
+			}
+		}
+		
+		
+		//Now unlock all locks related to the xid
+		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
+		
+		
+		//Now call abort on each of the RMs
+		try{
+			
+		}catch(Exception e){//What do we do
+		}
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
-	@Override
 	public boolean shutdown() throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	
+	//USELESS METHODS
+	public void start(int xid) throws RemoteException {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

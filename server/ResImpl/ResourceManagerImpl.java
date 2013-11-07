@@ -20,6 +20,9 @@ import transaction.TransactionAbortedException;
 public class ResourceManagerImpl implements ResourceManager {
 
 	protected RMHashtable m_itemHT = new RMHashtable();
+	
+	//Create a transaction hashtable to store transaction data --> this will be used fho the real abort shizzle
+	protected Hashtable<Integer,HashMap<String,RMItem>> t_records = new Hashtable<Integer,HashMap<String,RMItem>>();
 
 	public static void main(String args[]) {
 		// Figure out where server is running
@@ -470,43 +473,82 @@ public class ResourceManagerImpl implements ResourceManager {
 		}
 		return false;
 	}
-
-	/* (non-Javadoc)
-	 * @see ResInterface.ResourceManager#start()
-	 */
+	
+	//Creates an entry in the transaction abort table
 	@Override
-	public int start() throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
+	public void start(int xid) throws RemoteException{
+		synchronized(t_records){
+			//Create new HashTable entry in the transactions table
+			t_records.put(xid, new HashMap<String, RMItem>());
+		}
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
-	@Override
-	public boolean commit(int transactionId) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean commit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+		//Start by removing the hashtable entry for this transaction ID inside the transaction record
+		Object removedObject = t_records.remove(xid);
+		if(removedObject==null) return false;//if there was no hash table fho dis transaction ID
+		
+		//Now unlock all locks related to the xid
+		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
+			
+		return true;
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
-	@Override
-	public void abort(int transactionId) throws RemoteException,
-			InvalidTransactionException {
-		// TODO Auto-generated method stub
+	public void abort(int xid) throws RemoteException, InvalidTransactionException {
+		//Start by removing the hashtable entry for this transaction ID inside the transaction records table
+		HashMap<String, RMItem> r_table = t_records.remove(xid);
+		
+		if(r_table != null)
+		{
+			Set<String> keys = r_table.keySet();
+			RMItem tmp_item;
+			
+			//Loop through all elements in the removed hash table and reset their original value inside the RM's hash table
+			for (String key : keys){
+				tmp_item = (RMItem)r_table.get(key);
+				
+				if(tmp_item==null)
+				{
+					//We need to remove this item from the RM's hash table
+					m_itemHT.remove(key);
+				}else{
+					//We need to add this item to this RM's hash table
+					m_itemHT.put(key, (RMItem)tmp_item);
+				}
+			}
+		}
+		
+		
+		//Now unlock all locks related to the xid
+		//TODO: something like: lockManager.unlockAll(xid); //--> does not need to be synchronized, since unlockAll method takes care of that
 		
 	}
 
 	/* (non-Javadoc)
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
-	@Override
 	public boolean shutdown() throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+	
+	
+	//USELESS FUNCTIONS GO BELOW
+	//THIS IS THE NAUGHTY CORNER
+	
+	/* (non-Javadoc)
+	 * @see ResInterface.ResourceManager#start()
+	 */
+	public int start() throws RemoteException {
+		//We don't need this method in the RM since the middleware layer should never actually call this 
+		//Returns 0 to tell that there were no ID created if this method is ever called
+		return 0;
 	}
 
 }
