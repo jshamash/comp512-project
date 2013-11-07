@@ -32,7 +32,7 @@ public class TransactionManager {
 	}
 	
 	//Method that creates a new Transaction id
-	public int getNewTransactionId(){
+	private int getNewTransactionId(){
 		tid_counter++;
 		return tid_counter;
 	}
@@ -83,7 +83,7 @@ public class TransactionManager {
 	//Start called. We create a new xid for the new transaction, 
 	//then we create an entry in our hashtable to store which RM's we are
 	//connected to. Initially, we are not connected to any RMs
-	public int start(){
+	public int start() {
 		int new_xid = getNewTransactionId();
 		
 		synchronized(rm_records){
@@ -95,7 +95,9 @@ public class TransactionManager {
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
-	public boolean commit(int xid){
+	public boolean commit(int xid) throws InvalidTransactionException{
+		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
 		boolean excCustCommit= false;
@@ -136,7 +138,9 @@ public class TransactionManager {
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
-	public boolean abort(int xid){
+	public boolean abort(int xid) throws InvalidTransactionException{
+		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
 		boolean excCustAbort= false;
