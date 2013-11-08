@@ -34,7 +34,6 @@ public class DistributedResponseTimeEvaluation {
 		int txnsPerSec = 0;
 		long seconds = 0;
 		int id = 0;
-		String filename = "client-" + id + ".txt";
 		if (args.length != 5) {
 			System.out
 					.println("Usage: java client <rmihost> <rmiport> <txnsPerSec> <seconds> <client-id>");
@@ -42,9 +41,10 @@ public class DistributedResponseTimeEvaluation {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
 			txnsPerSec = Integer.parseInt(args[2]);
-			seconds = Long.parseLong(args[3]);
+			seconds = Integer.parseInt(args[3]);
 			id = Integer.parseInt(args[4]);
 		}
+		String filename = "client-" + id + ".txt";
 		System.out.println(txnsPerSec + " transactions per second");
 		System.out.println(seconds + " seconds");
 
