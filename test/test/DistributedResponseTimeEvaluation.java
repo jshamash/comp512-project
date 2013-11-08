@@ -4,11 +4,16 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.LinkedList;
 import java.util.Random;
 
+import transaction.InvalidTransactionException;
+import transaction.TransactionAbortedException;
+
+import LockManager.DeadlockException;
 import ResInterface.ResourceManager;
 
 public class DistributedResponseTimeEvaluation {
@@ -82,9 +87,11 @@ public class DistributedResponseTimeEvaluation {
 
 		long stopTime = System.currentTimeMillis() + seconds * 1000;
 
+		warmup(id);
+
 		while (System.currentTimeMillis() < stopTime) {
 			for (Transaction t : transactions) {
-				System.out.println(System.currentTimeMillis());
+				
 				if (System.currentTimeMillis() >= stopTime)
 					break;
 
@@ -104,6 +111,7 @@ public class DistributedResponseTimeEvaluation {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
+				System.out.println("Spent " + (System.currentTimeMillis() - before) + " on this txn");
 			}
 		}
 
@@ -130,5 +138,22 @@ public class DistributedResponseTimeEvaluation {
 		}
 
 		return transactions;
+	}
+	
+	private static void warmup(int id) {
+		try {
+			int xid = rm.start();
+			rm.addCars(xid, "montreal-"+id, 10, 10);
+			rm.deleteCars(xid, "montreal-"+id);
+			rm.addFlight(xid, id, 10, 10);
+			rm.deleteFlight(xid, id);
+			rm.newCustomer(xid, id);
+			rm.deleteCustomer(xid, id);
+			rm.addRooms(xid, "montreal-"+id, 10, 10);
+			rm.deleteRooms(xid, "montreal-"+id);
+			rm.commit(xid);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
