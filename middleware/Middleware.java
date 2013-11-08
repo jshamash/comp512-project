@@ -277,7 +277,11 @@ public class Middleware implements ResourceManager {
 			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.addRooms(id, location, numRooms, price);
 		} catch (DeadlockException e) {
-			// TODO abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -300,7 +304,11 @@ public class Middleware implements ResourceManager {
 			t_manager.enlist(id, TransactionManager.CUSTOMER);
 			writeData(id, cust.getKey(), cust);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -330,7 +338,11 @@ public class Middleware implements ResourceManager {
 				return false;
 			}
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -346,7 +358,11 @@ public class Middleware implements ResourceManager {
 			t_manager.enlist(id, TransactionManager.FLIGHT);
 			return flightRM.deleteFlight(id, flightNum);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -362,7 +378,11 @@ public class Middleware implements ResourceManager {
 			t_manager.enlist(id, TransactionManager.CAR);
 			return carRM.deleteCars(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -378,7 +398,11 @@ public class Middleware implements ResourceManager {
 			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.deleteRooms(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -448,7 +472,11 @@ public class Middleware implements ResourceManager {
 				return true;
 			}
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -463,7 +491,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return flightRM.queryFlight(id, flightNumber);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -472,7 +504,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return carRM.queryCars(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -481,7 +517,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return roomRM.queryRooms(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -505,7 +545,11 @@ public class Middleware implements ResourceManager {
 				return s;
 			}
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return "";
 	}
@@ -515,7 +559,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return flightRM.queryFlightPrice(id, flightNumber);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -524,7 +572,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return carRM.queryCarsPrice(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -533,7 +585,11 @@ public class Middleware implements ResourceManager {
 		try {
 			return roomRM.queryRoomsPrice(id, location);
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		}
 		return 0;
 	}
@@ -564,7 +620,11 @@ public class Middleware implements ResourceManager {
 					+ flightNumber + ")  failed--RM returned false");
 			return false;
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -599,7 +659,11 @@ public class Middleware implements ResourceManager {
 					+ location + ")  failed--RM returned false");
 			return false;
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -634,7 +698,11 @@ public class Middleware implements ResourceManager {
 					+ location + ")  failed--RM returned false");
 			return false;
 		} catch (DeadlockException e) {
-			// TODO Abort
+			try {
+				this.abort(id);
+			} catch (InvalidTransactionException e1) {
+				System.err.println("Invalid transaction: " + id);
+			}
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
