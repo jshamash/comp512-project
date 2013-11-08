@@ -84,6 +84,7 @@ public class DistributedResponseTimeEvaluation {
 
 		while (System.currentTimeMillis() < stopTime) {
 			for (Transaction t : transactions) {
+				System.out.println(System.currentTimeMillis());
 				if (System.currentTimeMillis() >= stopTime)
 					break;
 
