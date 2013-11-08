@@ -164,7 +164,7 @@ public class Middleware implements ResourceManager {
 			System.out.println("Recording past item " + copy + " - "
 					+ copy.hashCode());
 			if (newItem != null) {
-				System.out.println("The new item is ging to be " + newItem + " - "
+				System.out.println("The new item is going to be " + newItem + " - "
 						+ newItem.hashCode());
 			}
 			record.put(key, copy);
@@ -230,13 +230,14 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean addFlight(int id, int flightNum, int flightSeats,
-			int flightPrice) throws RemoteException {
+			int flightPrice) throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.FLIGHT);
 			return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -248,13 +249,14 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean addCars(int id, String location, int numCars, int price)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.CAR);
 			return carRM.addCars(id, location, numCars, price);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -266,13 +268,14 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean addRooms(int id, String location, int numRooms, int price)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.addRooms(id, location, numRooms, price);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -283,7 +286,7 @@ public class Middleware implements ResourceManager {
 		return false;
 	}
 
-	public int newCustomer(int id) throws RemoteException {
+	public int newCustomer(int id) throws RemoteException, TransactionAbortedException {
 		Trace.info("INFO: RM::newCustomer(" + id + ") called");
 		// Generate a globally unique ID for the new customer
 		int cid = Integer.parseInt(String.valueOf(id)
@@ -297,6 +300,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -308,7 +312,7 @@ public class Middleware implements ResourceManager {
 		return cid;
 	}
 
-	public boolean newCustomer(int id, int customerID) throws RemoteException {
+	public boolean newCustomer(int id, int customerID) throws RemoteException, TransactionAbortedException {
 		Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
 				+ ") called");
 		try {
@@ -328,6 +332,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -338,13 +343,14 @@ public class Middleware implements ResourceManager {
 		return false;
 	}
 
-	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
+	public boolean deleteFlight(int id, int flightNum) throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.FLIGHT);
 			return flightRM.deleteFlight(id, flightNum);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -355,13 +361,14 @@ public class Middleware implements ResourceManager {
 		return false;
 	}
 
-	public boolean deleteCars(int id, String location) throws RemoteException {
+	public boolean deleteCars(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.CAR);
 			return carRM.deleteCars(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -372,13 +379,14 @@ public class Middleware implements ResourceManager {
 		return false;
 	}
 
-	public boolean deleteRooms(int id, String location) throws RemoteException {
+	public boolean deleteRooms(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			t_manager.enlist(id, TransactionManager.ROOM);
 			return roomRM.deleteRooms(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -390,7 +398,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean deleteCustomer(int id, int customerID)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called");
 		try {
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -450,6 +458,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -460,12 +469,13 @@ public class Middleware implements ResourceManager {
 		return false;
 	}
 
-	public int queryFlight(int id, int flightNumber) throws RemoteException {
+	public int queryFlight(int id, int flightNumber) throws RemoteException, TransactionAbortedException {
 		try {
 			return flightRM.queryFlight(id, flightNumber);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -473,12 +483,13 @@ public class Middleware implements ResourceManager {
 		return 0;
 	}
 
-	public int queryCars(int id, String location) throws RemoteException {
+	public int queryCars(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			return carRM.queryCars(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -486,12 +497,13 @@ public class Middleware implements ResourceManager {
 		return 0;
 	}
 
-	public int queryRooms(int id, String location) throws RemoteException {
+	public int queryRooms(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			return roomRM.queryRooms(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -500,7 +512,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public String queryCustomerInfo(int id, int customerID)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
 				+ ") called");
 		try {
@@ -520,6 +532,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -528,12 +541,13 @@ public class Middleware implements ResourceManager {
 	}
 
 	public int queryFlightPrice(int id, int flightNumber)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			return flightRM.queryFlightPrice(id, flightNumber);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -541,12 +555,13 @@ public class Middleware implements ResourceManager {
 		return 0;
 	}
 
-	public int queryCarsPrice(int id, String location) throws RemoteException {
+	public int queryCarsPrice(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			return carRM.queryCarsPrice(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -554,12 +569,13 @@ public class Middleware implements ResourceManager {
 		return 0;
 	}
 
-	public int queryRoomsPrice(int id, String location) throws RemoteException {
+	public int queryRoomsPrice(int id, String location) throws RemoteException, TransactionAbortedException {
 		try {
 			return roomRM.queryRoomsPrice(id, location);
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -568,7 +584,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean reserveFlight(int id, int customerID, int flightNumber)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			// Read customer object if it exists (and read lock it)
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -595,6 +611,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -606,7 +623,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean reserveCar(int id, int customerID, String location)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			// Read customer object if it exists (and read lock it)
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -631,6 +648,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -642,7 +660,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean reserveRoom(int id, int customerID, String location)
-			throws RemoteException {
+			throws RemoteException, TransactionAbortedException {
 		try {
 			// Read customer object if it exists (and read lock it)
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -667,6 +685,7 @@ public class Middleware implements ResourceManager {
 		} catch (DeadlockException e) {
 			try {
 				this.abort(id);
+				throw new TransactionAbortedException(id, "Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
@@ -681,12 +700,14 @@ public class Middleware implements ResourceManager {
 	 * Note: items are reserved in this order: flight1, ..., flight n, car,
 	 * room. If any one of these fails, all previous reservations along the
 	 * chain are left as is. I.e. nothing is undone upon failure.
+	 * @throws TransactionAbortedException 
+	 * @throws NumberFormatException 
 	 * 
 	 * @see ResInterface.ResourceManager#reserveItinerary(int, int,
 	 *      java.util.Vector, java.lang.String, boolean, boolean)
 	 */
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
-			String location, boolean car, boolean room) throws RemoteException {
+			String location, boolean car, boolean room) throws RemoteException, NumberFormatException, TransactionAbortedException {
 
 		Trace.info("MW::reserveItinerary(" + id + ", " + customer + ", "
 				+ flightNumbers + ", " + location + ", " + car + ", " + room
