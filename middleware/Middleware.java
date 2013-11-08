@@ -519,7 +519,6 @@ public class Middleware implements ResourceManager {
 			}
 		} catch (DeadlockException e) {
 			try {
-				System.out.println("query customer gonig to abort");
 				this.abort(id);
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
