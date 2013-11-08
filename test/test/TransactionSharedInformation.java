@@ -4,6 +4,9 @@ import java.util.LinkedList;
 
 public class TransactionSharedInformation {
 
+	public int customerIdCounter;
+	public int flightIdCounter;
+	
 	//Lists for transactions
 	public LinkedList<Integer> c_ids = new LinkedList<Integer>();
 	public LinkedList<Integer> f_ids = new LinkedList<Integer>();
@@ -15,6 +18,16 @@ public class TransactionSharedInformation {
 	
 	public TransactionSharedInformation(){
 		fillInLocationLinkedList();
+		customerIdCounter = 0;
+		flightIdCounter = 0;
+	}
+	
+	public int getNewCustomerId(){
+		return ++customerIdCounter;
+	}
+
+	public int getNewFlightId(){
+		return ++flightIdCounter;
 	}
 	
 	//Transaction helper functions
