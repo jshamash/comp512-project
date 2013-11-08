@@ -19,6 +19,7 @@ public class TransactionSharedInformation {
 	
 	
 	public TransactionSharedInformation(int clientId){
+		this.clientId = clientId;
 		fillInLocationLinkedList(clientId);
 		customerIdCounter = 0;
 		flightIdCounter = 0;
