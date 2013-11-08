@@ -70,7 +70,7 @@ public class PerformanceEvaluation {
 			System.out.println("Done.");
 
 			writer.close();
-			rm.shutdown();
+			//rm.shutdown();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -84,17 +84,17 @@ public class PerformanceEvaluation {
 			rm.queryCars(xid, "montreal");
 			rm.deleteCars(xid, "montreal");
 
-			rm.addCars(xid, "montreal", 100, 100);
-			rm.queryCars(xid, "montreal");
-			rm.deleteCars(xid, "montreal");
+			rm.addCars(xid, "toronto", 100, 100);
+			rm.queryCars(xid, "toronto");
+			rm.deleteCars(xid, "toronto");
 
-			rm.addCars(xid, "montreal", 100, 100);
-			rm.queryCars(xid, "montreal");
-			rm.deleteCars(xid, "montreal");
+			rm.addCars(xid, "buffalo", 100, 100);
+			rm.queryCars(xid, "buffalo");
+			rm.deleteCars(xid, "buffalo");
 
-			rm.addCars(xid, "montreal", 100, 100);
-			rm.queryCars(xid, "montreal");
-			rm.deleteCars(xid, "montreal");
+//			rm.addCars(xid, "montreal", 100, 100);
+//			rm.queryCars(xid, "montreal");
+//			rm.deleteCars(xid, "montreal");
 
 			rm.commit(xid);
 		} catch (Exception e) {
@@ -118,10 +118,10 @@ public class PerformanceEvaluation {
 			rm.queryRooms(xid, "montreal");
 			rm.deleteRooms(xid, "montreal");
 
-			int cid = (new Random()).nextInt(500);
-			rm.newCustomer(xid, cid);
-			rm.queryCustomerInfo(xid, cid);
-			rm.deleteCustomer(xid, cid);
+//			int cid = (new Random()).nextInt(500);
+//			rm.newCustomer(xid, cid);
+//			rm.queryCustomerInfo(xid, cid);
+//			rm.deleteCustomer(xid, cid);
 
 			rm.commit(xid);
 		} catch (Exception e) {
