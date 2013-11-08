@@ -1,9 +1,17 @@
 package test;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
+import transaction.InvalidTransactionException;
+import transaction.TransactionAbortedException;
+
+import LockManager.DeadlockException;
 import ResInterface.ResourceManager;
 
 public class PerformanceEvaluation {
@@ -12,15 +20,26 @@ public class PerformanceEvaluation {
 	
 	public static void main(String[] args) {
 		String server = "localhost";
-		int port = 1099;
-		if (args.length == 1)
-			server = args[0];
-		if (args.length == 2) {
+		int port = 9090;
+		int iterations = 0;
+		long before;
+		long after;
+		String filename = "results.txt";
+		BufferedWriter writer = null;
+		try {
+			writer = new BufferedWriter(new FileWriter(filename));
+		} catch (IOException e1) {
+			System.err.println("Couldn't open file " + filename + " for writing");
+			System.exit(1);
+		}
+		if (args.length != 3) {
+			System.out.println("Usage: java client <rmihost> <rmiport> <iterations>");
+			System.exit(1);
+		}
+		else {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
-		} else if (args.length != 0 && args.length != 2) {
-			System.out.println("Usage: java client [rmihost [rmiport]]");
-			System.exit(1);
+			iterations = Integer.parseInt(args[2]);
 		}
 
 		try {
@@ -43,6 +62,115 @@ public class PerformanceEvaluation {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
+		
+		before = System.currentTimeMillis();
+		for (int i = 0; i < iterations; i++) {
+			sendTransactionOneRM();
+		}
+		after = System.currentTimeMillis();
+		try {
+			writer.write("One RM: " + (after - before) + "\n");
+		} catch (IOException e) {
+			System.err.println("Couldn't write to file!");
+		}
+		
+		before = System.currentTimeMillis();
+		for (int i = 0; i < iterations; i++) {
+			sendTransactionAllRMs();
+		}
+		after = System.currentTimeMillis();
+		try {
+			writer.write("All RMs: " + (after - before) + "\n");
+		} catch (IOException e) {
+			System.err.println("Couldn't write to file!");
+		}
+		
+		try {
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			rm.shutdown();
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void sendTransactionOneRM() {
+		try {
+			int xid = rm.start();
+			
+			rm.addCars(xid, "montreal", 100, 100);
+			rm.queryCars(xid, "montreal");
+			rm.deleteCars(xid, "montreal");
+			
+			rm.addCars(xid, "montreal", 100, 100);
+			rm.queryCars(xid, "montreal");
+			rm.deleteCars(xid, "montreal");
+			
+			rm.addCars(xid, "montreal", 100, 100);
+			rm.queryCars(xid, "montreal");
+			rm.deleteCars(xid, "montreal");
+			
+			rm.addCars(xid, "montreal", 100, 100);
+			rm.queryCars(xid, "montreal");
+			rm.deleteCars(xid, "montreal");
+			
+			rm.commit(xid);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DeadlockException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void sendTransactionAllRMs() {
+		try {
+			int xid = rm.start();
+			
+			rm.addCars(xid, "montreal", 100, 100);
+			rm.queryCars(xid, "montreal");
+			rm.deleteCars(xid, "montreal");
+			
+			rm.addFlight(xid, 10, 100, 100);
+			rm.queryFlight(xid, 10);
+			rm.deleteFlight(xid, 10);
+			
+			rm.addRooms(xid, "montreal", 100, 100);
+			rm.queryRooms(xid, "montreal");
+			rm.deleteRooms(xid, "montreal");
+			
+			int cid = rm.newCustomer(xid);
+			rm.queryCustomerInfo(xid, cid);
+			rm.deleteCustomer(xid, cid);
+			
+			rm.commit(xid);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DeadlockException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidTransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	private void warmupServers(){
