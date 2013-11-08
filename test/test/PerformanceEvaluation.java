@@ -132,11 +132,11 @@ public class PerformanceEvaluation {
 
 	private static void warmup() {
 		try {
-			int xid, customerId;
+			int xid;
 			for (int i = 0; i < 50; i++) {
 				xid = rm.start();
-				customerId = rm.newCustomer(xid);
-				rm.deleteCustomer(xid, customerId);
+				rm.newCustomer(xid, 500);
+				rm.deleteCustomer(xid, 500);
 				rm.addCars(xid, "montreal", 50, 50000);
 				rm.deleteCars(xid, "montreal");
 				rm.addRooms(xid, "montreal", 50, 500);
