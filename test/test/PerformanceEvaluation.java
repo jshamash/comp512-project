@@ -16,7 +16,7 @@ import LockManager.DeadlockException;
 import ResInterface.ResourceManager;
 
 public class PerformanceEvaluation {
-
+	
 	private static ResourceManager rm;
 
 	public static void main(String[] args) {
@@ -126,6 +126,53 @@ public class PerformanceEvaluation {
 			e.printStackTrace();
 		}
 
+	}
+	
+	private void warmupServers(){
+		try{
+			int xid, customerId;
+			for(int i = 0;i<250;i++){
+				xid = rm.start();
+				customerId = rm.newCustomer(xid);
+				rm.commit(xid);
+				
+				xid = rm.start();
+				rm.deleteCustomer(xid, customerId);
+				rm.commit(xid);
+			}
+
+			for(int i = 0;i<250;i++){
+				xid = rm.start();
+				rm.addCars(xid, "montreal", 50,50000);
+				rm.commit(xid);
+				
+				xid = rm.start();
+				rm.deleteCars(xid, "montreal");
+				rm.commit(xid);
+			}
+
+			for(int i = 0;i<250;i++){
+				xid = rm.start();
+				rm.addRooms(xid, "montreal", 50, 500);
+				rm.commit(xid);
+				
+				xid = rm.start();
+				rm.addRooms(xid, "montreal", 50, 500);
+				rm.commit(xid);
+			}
+			
+			for(int i = 0;i<250;i++){
+				xid = rm.start();
+				rm.addFlight(xid, 10, 10, 10);
+				rm.commit(xid);
+				
+				xid = rm.start();
+				rm.addFlight(xid, 10, 10, 10);
+				rm.commit(xid);
+			}
+		}catch(Exception e){
+			System.out.println(e.toString());
+		}
 	}
 
 }
