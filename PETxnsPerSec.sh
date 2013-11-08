@@ -23,7 +23,7 @@ echo "$TXNS transactions per sec"
 echo "Test will run for $SECONDS seconds"
 
 TXNSPERCLIENT=$(printf "%.0f" $(bc -l <<< "($TXNS / $CLIENTS)"))
-echo "Each client should perform a transaction about every $TXNSPERCLIENT ms"
+echo "Each client should perform about $TXNSPERCLIENT transactions per second."
 
 cd ./test
 echo "grant codeBase \"file:$VAR/test\" { permission java.security.AllPermission; };" > ./test/client.policy
