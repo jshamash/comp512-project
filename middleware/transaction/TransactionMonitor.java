@@ -10,7 +10,7 @@ import ResInterface.ResourceManager;
 
 public class TransactionMonitor extends Thread {
 
-	private final long ttl = 30000;
+	private final long ttl = 120000;
 	private Hashtable<Integer, Long> ttl_records = new Hashtable<Integer, Long>();
 
 	private ResourceManager rm;

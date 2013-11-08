@@ -30,12 +30,12 @@ public class Transaction {
 		
 		t_id = (int)(randomiser.nextInt(NUMBTRANS+1));
 		
-		System.out.println("Trying to create trans #: " + t_id);
+		//System.out.println("Trying to create trans #: " + t_id);
 		
 		setup();
 		
-		System.out.println("Creating transaction "+i+":\n\tRandomTransactionId: "
-		+t_id+"\n\t\tCustomerId: "+customerId+"\n\t\tFlight Id: "+flight_id+"\n\t\tLocation: "+location);
+		/*System.out.println("Creating transaction "+i+":\n\tRandomTransactionId: "
+		+t_id+"\n\t\tCustomerId: "+customerId+"\n\t\tFlight Id: "+flight_id+"\n\t\tLocation: "+location);*/
 	}
 	
 	private void setup(){

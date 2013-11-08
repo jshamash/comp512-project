@@ -4,6 +4,8 @@ import java.util.LinkedList;
 
 public class TransactionSharedInformation {
 
+	private int clientId;
+	
 	public int customerIdCounter;
 	public int flightIdCounter;
 	
@@ -16,58 +18,60 @@ public class TransactionSharedInformation {
 	public LinkedList<String> r_locations_unused = new LinkedList<String>();
 	
 	
-	public TransactionSharedInformation(){
-		fillInLocationLinkedList();
+	public TransactionSharedInformation(int clientId){
+		fillInLocationLinkedList(clientId);
 		customerIdCounter = 0;
 		flightIdCounter = 0;
 	}
 	
 	public int getNewCustomerId(){
-		return ++customerIdCounter;
+		String id = ""+(++customerIdCounter)+""+clientId+""+clientId+""+clientId+""+clientId+""+clientId;
+		return Integer.parseInt(id);
 	}
 
 	public int getNewFlightId(){
-		return ++flightIdCounter;
+		String id = ""+(++flightIdCounter)+""+clientId+""+clientId+""+clientId+""+clientId+""+clientId;
+		return Integer.parseInt(id);
 	}
 	
 	//Transaction helper functions
-	private void fillInLocationLinkedList(){
-		c_locations_unused.add("montreal");
-		c_locations_unused.add("toronto");
-		c_locations_unused.add("winnipeg");
-		c_locations_unused.add("calgary");
-		c_locations_unused.add("boston");
-		c_locations_unused.add("philadelphy");
-		c_locations_unused.add("newyork");
-		c_locations_unused.add("ottawa");
-		c_locations_unused.add("edmonton");
-		c_locations_unused.add("vancouver");
-		c_locations_unused.add("quebec");
-		c_locations_unused.add("seattle");
-		c_locations_unused.add("florida");
-		c_locations_unused.add("carolina");
-		c_locations_unused.add("pittsburgh");
-		c_locations_unused.add("washington");
-		c_locations_unused.add("dallas");
-		c_locations_unused.add("losangeles");
-		c_locations_unused.add("lasvegas");
-		c_locations_unused.add("phoenix");
-		c_locations_unused.add("tampabay");
-		c_locations_unused.add("buffalo");
-		c_locations_unused.add("detroit");
-		c_locations_unused.add("chicago");
-		c_locations_unused.add("anaheim");
-		c_locations_unused.add("sanjose");
-		c_locations_unused.add("colorado");
-		c_locations_unused.add("saintlouis");
-		c_locations_unused.add("columbus");
-		c_locations_unused.add("minnesota");
-		c_locations_unused.add("paris");
-		c_locations_unused.add("london");
-		c_locations_unused.add("mexico");
-		c_locations_unused.add("brasil");
-		c_locations_unused.add("moscow");
-		c_locations_unused.add("hongkong");
+	private void fillInLocationLinkedList(int clientId){
+		c_locations_unused.add("montreal"+clientId);
+		c_locations_unused.add("toronto"+clientId);
+		c_locations_unused.add("winnipeg"+clientId);
+		c_locations_unused.add("calgary"+clientId);
+		c_locations_unused.add("boston"+clientId);
+		c_locations_unused.add("philadelphy"+clientId);
+		c_locations_unused.add("newyork"+clientId);
+		c_locations_unused.add("ottawa"+clientId);
+		c_locations_unused.add("edmonton"+clientId);
+		c_locations_unused.add("vancouver"+clientId);
+		c_locations_unused.add("quebec"+clientId);
+		c_locations_unused.add("seattle"+clientId);
+		c_locations_unused.add("florida"+clientId);
+		c_locations_unused.add("carolina"+clientId);
+		c_locations_unused.add("pittsburgh"+clientId);
+		c_locations_unused.add("washington"+clientId);
+		c_locations_unused.add("dallas"+clientId);
+		c_locations_unused.add("losangeles"+clientId);
+		c_locations_unused.add("lasvegas"+clientId);
+		c_locations_unused.add("phoenix"+clientId);
+		c_locations_unused.add("tampabay"+clientId);
+		c_locations_unused.add("buffalo"+clientId);
+		c_locations_unused.add("detroit"+clientId);
+		c_locations_unused.add("chicago"+clientId);
+		c_locations_unused.add("anaheim"+clientId);
+		c_locations_unused.add("sanjose"+clientId);
+		c_locations_unused.add("colorado"+clientId);
+		c_locations_unused.add("saintlouis"+clientId);
+		c_locations_unused.add("columbus"+clientId);
+		c_locations_unused.add("minnesota"+clientId);
+		c_locations_unused.add("paris"+clientId);
+		c_locations_unused.add("london"+clientId);
+		c_locations_unused.add("mexico"+clientId);
+		c_locations_unused.add("brasil"+clientId);
+		c_locations_unused.add("moscow"+clientId);
+		c_locations_unused.add("hongkong"+clientId);
 		r_locations_unused = (LinkedList<String>) c_locations_unused.clone();
 	}
 	
