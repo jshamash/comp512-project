@@ -10,7 +10,7 @@ import java.util.Random;
 import ResInterface.ResourceManager;
 
 public class PerformanceEvaluation {
-	
+
 	private static ResourceManager rm;
 
 	public static void main(String[] args) {
@@ -46,22 +46,29 @@ public class PerformanceEvaluation {
 			if (System.getSecurityManager() == null) {
 				System.setSecurityManager(new RMISecurityManager());
 			}
-			
-			warmup();
 
+			System.out.print("Warming up...");
+			warmup();
+			System.out.println("Done.");
+
+			System.out.print("Testing one RM...");
 			before = System.currentTimeMillis();
 			for (int i = 0; i < iterations; i++) {
 				sendTransactionOneRM();
 			}
 			after = System.currentTimeMillis();
 			writer.write("One RM: " + (after - before) + "\n");
+			System.out.println("Done.");
 
+			System.out.print("Testing all RMs...");
 			before = System.currentTimeMillis();
 			for (int i = 0; i < iterations; i++) {
 				sendTransactionAllRMs();
 			}
 			after = System.currentTimeMillis();
 			writer.write("All RMs: " + (after - before) + "\n");
+			System.out.println("Done.");
+
 			writer.close();
 			rm.shutdown();
 		} catch (Exception e) {
@@ -122,46 +129,25 @@ public class PerformanceEvaluation {
 		}
 
 	}
-	
-	private static void warmup(){
-		try{
+
+	private static void warmup() {
+		try {
 			int xid, customerId;
-			for(int i = 0;i<50;i++){
+			for (int i = 0; i < 50; i++) {
 				xid = rm.start();
 				customerId = rm.newCustomer(xid);
-				rm.commit(xid);
-				
-				xid = rm.start();
 				rm.deleteCustomer(xid, customerId);
-				rm.commit(xid);
-				
-				xid = rm.start();
-				rm.addCars(xid, "montreal", 50,50000);
-				rm.commit(xid);
-				
-				xid = rm.start();
+				rm.addCars(xid, "montreal", 50, 50000);
 				rm.deleteCars(xid, "montreal");
-				rm.commit(xid);
-				
-				xid = rm.start();
 				rm.addRooms(xid, "montreal", 50, 500);
-				rm.commit(xid);
-				
-				xid = rm.start();
 				rm.deleteRooms(xid, "montreal");
-				rm.commit(xid);
-				
-				xid = rm.start();
 				rm.addFlight(xid, 10, 10, 10);
-				rm.commit(xid);
-				
-				xid = rm.start();
 				rm.deleteFlight(xid, 10);
 				rm.commit(xid);
-				
+
 				Thread.sleep(500);
 			}
-		}catch(Exception e){
+		} catch (Exception e) {
 			System.out.println(e.toString());
 		}
 	}
