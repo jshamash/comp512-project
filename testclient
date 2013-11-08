@@ -21,5 +21,5 @@ echo "Starting client..."
 cd ./test
 echo "grant codeBase \"file:$VAR/test\" { permission java.security.AllPermission; };" > ./test/client.policy
 javac test/*.java
-java -Djava.security.policy=test/client.policy -classpath .:../server:../middleware test.PerformanceEvaluation $SERVERNAME $PORT $ITER
+java -Djava.security.policy=test/client.policy -classpath .:../server:../middleware test.PerformanceEvaluationOneClient $SERVERNAME $PORT $ITER
 cat results.txt

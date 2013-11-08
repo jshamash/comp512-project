@@ -5,11 +5,10 @@ import java.io.FileWriter;
 import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.Random;
 
 import ResInterface.ResourceManager;
 
-public class PerformanceEvaluation {
+public class PerformanceEvaluationOneClient {
 
 	private static ResourceManager rm;
 
