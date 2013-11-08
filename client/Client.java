@@ -643,8 +643,9 @@ public class Client {
 					break;
 				}
 				try {
+					System.out.println("Dumped!");
 					rm.dump();
-				} catch (RemoteException e) {
+				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
 					e.printStackTrace();
