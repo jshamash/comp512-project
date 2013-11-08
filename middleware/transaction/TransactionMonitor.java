@@ -39,7 +39,7 @@ public class TransactionMonitor extends Thread {
 				long now = System.currentTimeMillis();
 				Long previous = ttl_records.get(xid);
 				if (previous != null) {
-					if (now - previous < ttl) {
+					if (now - previous > ttl) {
 						try {
 							rm.abort(xid);
 						} catch (RemoteException e) {
