@@ -34,10 +34,10 @@ public class DistributedResponseTimeEvaluation {
 		int txnsPerSec = 0;
 		long seconds = 0;
 		int id = 0;
+		String filename = "client-" + id + ".txt";
 		if (args.length != 5) {
 			System.out
 					.println("Usage: java client <rmihost> <rmiport> <txnsPerSec> <seconds> <client-id>");
-			System.exit(1);
 		} else {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
@@ -47,7 +47,6 @@ public class DistributedResponseTimeEvaluation {
 		}
 		System.out.println(txnsPerSec + " transactions per second");
 		System.out.println(seconds + " seconds");
-		String filename = "client-" + id + ".txt";
 
 		try {
 			// get a reference to the rmiregistry
@@ -78,9 +77,6 @@ public class DistributedResponseTimeEvaluation {
 		long iterations = 0;
 		long before;
 		long after;
-
-		// Generates one transaction per time in interval [ms-DEVIATION,
-		// ms+DEVIATION]
 		int min = ms - DEVIATION;
 		int max = ms + DEVIATION;
 
@@ -112,7 +108,8 @@ public class DistributedResponseTimeEvaluation {
 
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
-			writer.write("Average response time: " + (double) responseTimeSum / iterations + "\n");
+			writer.write("Average response time: " + (double) responseTimeSum
+					/ iterations + "\n");
 			writer.close();
 		} catch (Exception e) {
 			e.printStackTrace();

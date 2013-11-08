@@ -26,10 +26,16 @@ public class Transaction {
 		
 		//Get a t_id
 		randomiser = new Random(i);
+		randomiser.setSeed(i);
 		
-		t_id = (int)(randomiser.nextDouble()*NUMBTRANS);
+		t_id = (int)(randomiser.nextInt(NUMBTRANS+1));
+		
+		System.out.println("Trying to create trans #: " + t_id);
 		
 		setup();
+		
+		System.out.println("Creating transaction "+i+":\n\tRandomTransactionId: "
+		+t_id+"\n\t\tCustomerId: "+customerId+"\n\t\tFlight Id: "+flight_id+"\n\t\tLocation: "+location);
 	}
 	
 	private void setup(){
@@ -50,8 +56,8 @@ public class Transaction {
 					break;
 				}
 				//Obtain random location from car and random customer id from customer
-				location = tsi.c_locations.get((int)(randomiser.nextDouble()*(tsi.c_locations.size()-1)));
-				customerId = tsi.c_ids.get((int)(randomiser.nextDouble()*(tsi.c_ids.size()-1)));
+				location = tsi.c_locations.get((int)(randomiser.nextInt(tsi.c_locations.size())));
+				customerId = tsi.c_ids.get((int)(randomiser.nextInt(tsi.c_ids.size())));
 				break;
 			case 2:
 				//Requires car location and customer ID
@@ -65,7 +71,7 @@ public class Transaction {
 					break;
 				}
 				
-				location = tsi.c_locations_unused.remove((int)(randomiser.nextDouble()*(tsi.c_locations_unused.size()-1)));
+				location = tsi.c_locations_unused.remove((int)(randomiser.nextInt(tsi.c_locations_unused.size())));
 				tsi.c_locations.add(location);
 				break;
 			case 3://Requires unused room location
@@ -79,7 +85,7 @@ public class Transaction {
 					break;
 				}
 				
-				location = tsi.r_locations_unused.remove((int)(randomiser.nextDouble()*(tsi.r_locations_unused.size()-1)));
+				location = tsi.r_locations_unused.remove((int)(randomiser.nextInt(tsi.r_locations_unused.size())));
 				tsi.r_locations.add(location);
 				break;
 			case 4://Requires a new flight id
@@ -108,10 +114,10 @@ public class Transaction {
 					break;
 				}
 				//Car Location
-				location = tsi.c_locations.get((int)(randomiser.nextDouble()*(tsi.c_locations.size()-1)));
+				location = tsi.c_locations.get((int)(randomiser.nextInt(tsi.c_locations.size())));
 				
 				//Flight id
-				flight_id = tsi.f_ids.get((int)(randomiser.nextDouble()*(tsi.f_ids.size()-1)));
+				flight_id = tsi.f_ids.get((int)(randomiser.nextInt(tsi.f_ids.size())));
 				
 				//Get new customer
 				customerId = tsi.getNewCustomerId();
