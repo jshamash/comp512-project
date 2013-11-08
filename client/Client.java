@@ -7,6 +7,8 @@ import java.rmi.registry.Registry;
 import java.util.*;
 import java.io.*;
 
+import transaction.TransactionAbortedException;
+
 public class Client {
 	static String message = "blank";
 	static ResourceManager rm = null;
@@ -112,6 +114,9 @@ public class Client {
 						System.out.println("Flight added");
 					else
 						System.out.println("Flight could not be added");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -139,6 +144,9 @@ public class Client {
 						System.out.println("Cars added");
 					else
 						System.out.println("Cars could not be added");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -166,6 +174,9 @@ public class Client {
 						System.out.println("Rooms added");
 					else
 						System.out.println("Rooms could not be added");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -184,6 +195,9 @@ public class Client {
 					Id = obj.getInt(arguments.elementAt(1));
 					int customer = rm.newCustomer(Id);
 					System.out.println("new customer id:" + customer);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -206,6 +220,9 @@ public class Client {
 						System.out.println("Flight Deleted");
 					else
 						System.out.println("Flight could not be deleted");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -230,6 +247,9 @@ public class Client {
 						System.out.println("Cars Deleted");
 					else
 						System.out.println("Cars could not be deleted");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -253,6 +273,9 @@ public class Client {
 						System.out.println("Rooms Deleted");
 					else
 						System.out.println("Rooms could not be deleted");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -276,6 +299,9 @@ public class Client {
 						System.out.println("Customer Deleted");
 					else
 						System.out.println("Customer could not be deleted");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -296,6 +322,9 @@ public class Client {
 					flightNum = obj.getInt(arguments.elementAt(2));
 					int seats = rm.queryFlight(Id, flightNum);
 					System.out.println("Number of seats available:" + seats);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -317,6 +346,9 @@ public class Client {
 					numCars = rm.queryCars(Id, location);
 					System.out.println("number of Cars at this location:"
 							+ numCars);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -338,6 +370,9 @@ public class Client {
 					numRooms = rm.queryRooms(Id, location);
 					System.out.println("number of Rooms at this location:"
 							+ numRooms);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -358,6 +393,9 @@ public class Client {
 					int customer = obj.getInt(arguments.elementAt(2));
 					String bill = rm.queryCustomerInfo(Id, customer);
 					System.out.println("Customer info:" + bill);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -378,6 +416,9 @@ public class Client {
 					flightNum = obj.getInt(arguments.elementAt(2));
 					price = rm.queryFlightPrice(Id, flightNum);
 					System.out.println("Price of a seat:" + price);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -399,6 +440,9 @@ public class Client {
 					price = rm.queryCarsPrice(Id, location);
 					System.out.println("Price of a car at this location:"
 							+ price);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -420,6 +464,9 @@ public class Client {
 					price = rm.queryRoomsPrice(Id, location);
 					System.out.println("Price of Rooms at this location:"
 							+ price);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -444,6 +491,9 @@ public class Client {
 						System.out.println("Flight Reserved");
 					else
 						System.out.println("Flight could not be reserved.");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -470,6 +520,9 @@ public class Client {
 						System.out.println("Car Reserved");
 					else
 						System.out.println("Car could not be reserved.");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -495,6 +548,9 @@ public class Client {
 						System.out.println("Room Reserved");
 					else
 						System.out.println("Room could not be reserved.");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -537,6 +593,9 @@ public class Client {
 						System.out.println("Itinerary Reserved");
 					else
 						System.out.println("Itinerary could not be reserved.");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -565,6 +624,9 @@ public class Client {
 					Cid = obj.getInt(arguments.elementAt(2));
 					boolean customer = rm.newCustomer(Id, Cid);
 					System.out.println("new customer id:" + Cid);
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -597,6 +659,9 @@ public class Client {
 					if (rm.commit(Id))
 						System.out.println("Committed successfully");
 					else System.out.println("Commit failed");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -613,6 +678,9 @@ public class Client {
 					Id = obj.getInt(arguments.elementAt(1));
 					rm.abort(Id);
 					System.out.println("Aborted transaction");
+				} catch (TransactionAbortedException a)  {
+					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
+					System.out.println(a.getMessage());
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
