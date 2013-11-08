@@ -243,10 +243,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -264,10 +261,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -285,10 +279,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -312,10 +303,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
 		return cid;
 	}
@@ -346,10 +334,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -366,10 +351,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -384,9 +366,6 @@ public class Middleware implements ResourceManager {
 				System.err.println("Invalid transaction: " + id);
 			}
 		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -404,9 +383,6 @@ public class Middleware implements ResourceManager {
 				System.err.println("Invalid transaction: " + id);
 			}
 		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -480,9 +456,6 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (TransactionAbortedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		}
 		return false;
 	}
@@ -546,6 +519,7 @@ public class Middleware implements ResourceManager {
 			}
 		} catch (DeadlockException e) {
 			try {
+				System.out.println("query customer gonig to abort");
 				this.abort(id);
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
@@ -628,9 +602,6 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return false;
 	}
@@ -667,10 +638,7 @@ public class Middleware implements ResourceManager {
 		} catch (InvalidTransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		return false;
 	}
 
@@ -704,9 +672,6 @@ public class Middleware implements ResourceManager {
 				System.err.println("Invalid transaction: " + id);
 			}
 		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TransactionAbortedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -881,10 +846,10 @@ public class Middleware implements ResourceManager {
 				}
 				
 				System.out.println("Successfully aborted aborted transaction "+xid+" from customer RM.");
-	
+				
 			}
 		}catch(InvalidTransactionException e){
-			System.out.println(e.toString());
+			System.out.println(e.getMessage());
 		}
 	}
 

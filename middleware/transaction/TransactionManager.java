@@ -16,7 +16,6 @@ public class TransactionManager {
 	
 	
 	private int tid_counter;
-	private HashMap<Integer, Boolean> t_aborted = new HashMap<Integer, Boolean>();
 	private ResourceManager customerRM, carRM, roomRM, flightRM;
 	protected Hashtable<Integer,LinkedList<Integer>> rm_records = new Hashtable<Integer,LinkedList<Integer>>();
 	
@@ -40,8 +39,7 @@ public class TransactionManager {
 	//Check if the transaction has started an the RM specified with the rm_id
 	//If not started, do nothing and return
 	//If not started, start rm with xid and insert rm_id into list
-	public void enlist(int xid, int rm_id) throws InvalidTransactionException, TransactionAbortedException{
-		if(t_aborted.get(xid) != null) throw new TransactionAbortedException(xid, "Transaction "+xid+" has already been aborted.");
+	public void enlist(int xid, int rm_id) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		LinkedList<Integer> rm_list = rm_records.get(xid);
@@ -98,8 +96,7 @@ public class TransactionManager {
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
-	public boolean commit(int xid) throws InvalidTransactionException, TransactionAbortedException{
-		if(t_aborted.get(xid)!=null) throw new TransactionAbortedException(xid, "Transaction "+xid+" has already been aborted.");
+	public boolean commit(int xid) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
@@ -145,6 +142,8 @@ public class TransactionManager {
 	public boolean abort(int xid) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
+		System.out.println("Aborting transaction "+xid);
+		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
 		boolean excCustAbort= false;
@@ -153,14 +152,12 @@ public class TransactionManager {
 			switch(i){
 				case CUSTOMER:
 					excCustAbort = true;
-					t_aborted.put(xid, true);
 					break;
 					
 				case CAR:
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");
 						carRM.abort(xid);
-						t_aborted.put(xid, true);
 						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
 					}catch(Exception e){}
 					break;
@@ -169,7 +166,6 @@ public class TransactionManager {
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from room RM.");
 						roomRM.abort(xid);
-						t_aborted.put(xid, true);
 						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
 					}catch(Exception e){}
 					break;
@@ -177,7 +173,6 @@ public class TransactionManager {
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from flight RM.");
 						flightRM.abort(xid);
-						t_aborted.put(xid, true);
 						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
 					}catch(Exception e){}
 					break;
