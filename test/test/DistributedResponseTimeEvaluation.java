@@ -33,11 +33,11 @@ public class DistributedResponseTimeEvaluation {
 	public static void main(String[] args) {
 		String server = "localhost";
 		int port = 9090;
-		int numTransactions = 0;
+		int numTransactions = 50;
 		long before;
 		long after;
 		String filename = "results.txt";
-		BufferedWriter writer = null;
+		/*BufferedWriter writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter(filename));
 		} catch (IOException e1) {
@@ -73,13 +73,15 @@ public class DistributedResponseTimeEvaluation {
 
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
-		}
+		}*/
 		
 		
 		//Now create transactions and run transactions
 		LinkedList<Transaction> transactions = createTransactions(numTransactions);
 		
-		for (Transaction t : transactions) t.run();
+		System.out.println("Number of transaction created: " + transactions.size());
+		
+		//for (Transaction t : transactions) t.run();
 		
 		/*try {
 			rm.shutdown();
