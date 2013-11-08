@@ -70,6 +70,8 @@ public class DistributedResponseTimeEvaluation {
 		}
 
 		// Now create transactions and run transactions
+		
+		System.out.println("Creating "+TRANSACTIONS+" for client: "+id);
 		LinkedList<Transaction> transactions = createTransactions(TRANSACTIONS, id);
 
 		int ms = (int) ((1.0 / txnsPerSec) * 1000);
