@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# For testing purposes
+# Launches three servers, a middleware and two clients, all running on localhost.
+
+if [ $# -eq 1 ];then
+	ITER=$1
+else
+	echo "Usage: ./performance-eval <iterations>"
+	exit -1
+fi
+
+xterm -e ./serverscript 6060 &
+xterm -e ./serverscript 6161 &
+xterm -e ./serverscript 6262 &
+read -p "When all servers are ready, press enter to launch middleware"
+xterm -e "./middlewarescript localhost 6060 localhost 6161 localhost 6262 6363" &
+read -p "When middleware is ready, press enter to launch clients"
+echo "Press ctrl-C to end the application"
+xterm -e "./testclient localhost 6363 $ITER"
+exit 0

@@ -11,3 +11,5 @@ bin/
 client/client.policy
 server/server.policy
 middleware/middleware.policy
+test/test/*.policy
+test/*.txt
