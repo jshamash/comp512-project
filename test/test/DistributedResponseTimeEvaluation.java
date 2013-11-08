@@ -70,7 +70,7 @@ public class DistributedResponseTimeEvaluation {
 		}
 
 		// Now create transactions and run transactions
-		LinkedList<Transaction> transactions = createTransactions(TRANSACTIONS);
+		LinkedList<Transaction> transactions = createTransactions(TRANSACTIONS, id);
 
 		int ms = (int) ((1.0 / txnsPerSec) * 1000);
 		long responseTimeSum = 0;
@@ -118,11 +118,10 @@ public class DistributedResponseTimeEvaluation {
 
 	// Creates numbTransactions transactions and returns a linkedList containing
 	// all of these transactions
-	private static LinkedList<Transaction> createTransactions(
-			int numbTransactions) {
+	private static LinkedList<Transaction> createTransactions(int numbTransactions, int clientId) {
 		LinkedList<Transaction> transactions = new LinkedList<Transaction>();
 
-		TransactionSharedInformation tsi = new TransactionSharedInformation();
+		TransactionSharedInformation tsi = new TransactionSharedInformation(clientId);
 
 		for (int i = 0; i < numbTransactions; i++) {
 			transactions.addLast(new Transaction(i, tsi, rm));
