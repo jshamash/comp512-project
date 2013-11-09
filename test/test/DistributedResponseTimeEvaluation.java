@@ -103,6 +103,7 @@ public class DistributedResponseTimeEvaluation {
 				before = System.currentTimeMillis();
 				t.run();
 				after = System.currentTimeMillis();
+				System.out.println("Txn took " + (after-before) + " ms");
 				responseTimeSum += (after - before);
 				iterations++;
 				try {
