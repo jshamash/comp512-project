@@ -625,7 +625,8 @@ public class Middleware implements ResourceManager {
 			if (flightRM.reserveFlight(id, customerID, flightNumber)) {
 				// Item was successfully marked reserved by RM
 				t_manager.enlist(id, TransactionManager.CUSTOMER);
-				cust.reserve(Flight.getKey(flightNumber),
+				Customer updatedCust = (Customer) DeepCopy.copy(cust);
+				updatedCust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
 				writeData(id, cust.getKey(), cust);
 				return true;
@@ -663,8 +664,9 @@ public class Middleware implements ResourceManager {
 			int price = carRM.queryCarsPrice(id, location);
 			if (carRM.reserveCar(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
-				cust.reserve(Car.getKey(location), location, price);
-				writeData(id, cust.getKey(), cust);
+				Customer updatedCust = (Customer) DeepCopy.copy(cust);
+				updatedCust.reserve(Car.getKey(location), location, price);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -700,7 +702,8 @@ public class Middleware implements ResourceManager {
 			int price = roomRM.queryRoomsPrice(id, location);
 			if (roomRM.reserveRoom(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
-				cust.reserve(Hotel.getKey(location), location, price);
+				Customer updatedCust = (Customer) DeepCopy.copy(cust);
+				updatedCust.reserve(Hotel.getKey(location), location, price);
 				writeData(id, cust.getKey(), cust);
 				return true;
 			}
