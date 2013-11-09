@@ -49,6 +49,7 @@ public class LockManager {
 			while (bConflict) {
 				synchronized (this.lockTable) {
 					// check if this lock request conflicts with existing locks
+					
 					bConflict = LockConflict(dataObj, bConvert);
 					if (!bConflict) {
 						// no lock conflict
@@ -111,6 +112,8 @@ public class LockManager {
 
 	// remove all locks for this transaction in the lock table.
 	public boolean UnlockAll(int xid) {
+		
+		System.out.println("Unlocking all...");
 
 		// if any parameter is invalid, then return false
 		if (xid < 0) {
@@ -135,21 +138,28 @@ public class LockManager {
 
 				DataObj dataObj = new DataObj(trxnObj.getXId(),
 						trxnObj.getDataName(), trxnObj.getLockType());
+				System.out.println(this.lockTable.elements(dataObj).size() + " Are locking the item before remove");
 				this.lockTable.remove(dataObj);
+				System.out.println(this.lockTable.elements(dataObj).size() + "Are locking the item after remove");
 
 				// check if there are any waiting transactions.
 				synchronized (this.waitTable) {
 					// get all the transactions waiting on this dataObj
 					waitVector = this.waitTable.elements(dataObj);
 					int waitSize = waitVector.size();
+					System.out.println("Wait size is " + waitSize);
 					for (int j = 0; j < waitSize; j++) {
+						System.out.println("Examining an object");
 						waitObj = (WaitObj) waitVector.elementAt(j);
 						if (waitObj.getLockType() == LockManager.WRITE) {
+							System.out.println("Found a write lock");
 							if (j == 0) {
+								System.out.println("It;s the first item");
 								// get all other transactions which have locks
 								// on the
 								// data item just unlocked.
 								Vector vect1 = this.lockTable.elements(dataObj);
+								System.out.println(vect1.size() + " other people hold this lock");
 
 								// remove interrupted thread from waitTable only
 								// if no
@@ -158,8 +168,10 @@ public class LockManager {
 									this.waitTable.remove(waitObj);
 
 									try {
+										System.out.println("Granting a write lock!");
 										synchronized (waitObj.getThread()) {
 											waitObj.getThread().notify();
+											//TODO do we need to keep looping or should we break?
 										}
 									} catch (Exception e) {
 										System.out
@@ -181,10 +193,12 @@ public class LockManager {
 							// request in the queue of requests
 							break;
 						} else if (waitObj.getLockType() == LockManager.READ) {
+							System.out.println("Found a read lock");
 							// remove interrupted thread from waitTable.
 							this.waitTable.remove(waitObj);
 
 							try {
+								System.out.println("Freeing a read lock!");
 								synchronized (waitObj.getThread()) {
 									waitObj.getThread().notify();
 								}
@@ -216,6 +230,8 @@ public class LockManager {
 		Vector vect = this.lockTable.elements(dataObj);
 		DataObj dataObj2;
 		int size = vect.size();
+		System.out.println("Vect is " + size);
+		System.out.println("Xid is " + dataObj.getXId());
 
 		boolean changeBitset = false;
 
@@ -253,9 +269,11 @@ public class LockManager {
 					// We see that there were no conflict, but what if we have a
 					// conversion
 					if (size > 1) {
+						System.out.println("THIS IS 1");
 						return true;
 					} else {
 						bitset.set(0, true);
+						System.out.println("THIS IS 2");
 						return false;
 					}
 
@@ -267,6 +285,7 @@ public class LockManager {
 						// transaction
 						// already has a WRITE lock on it ==> conflict
 						System.out.println("Want READ, someone has WRITE");
+						System.out.println("THIS IS 3");
 						return true;
 					} else {
 						// do nothing
@@ -276,12 +295,14 @@ public class LockManager {
 					// transaction has either
 					// a READ or a WRITE lock on it ==> conflict
 					System.out.println("Want WRITE, someone has READ or WRITE");
+					System.out.println("THIS IS 4");
 					return true;
 				}
 			}
 		}
 
 		// no conflicting lock found, return false
+		System.out.println("THIS IS 5bitach");
 		return false;
 
 	}

@@ -36,7 +36,7 @@ public interface ResourceManager extends Remote {
 	 */
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/*
 	 * Add cars to a location. This should look a lot like addFlight, only keyed
@@ -44,7 +44,7 @@ public interface ResourceManager extends Remote {
 	 */
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/*
 	 * Add rooms to a location. This should look a lot like addFlight, only
@@ -52,15 +52,15 @@ public interface ResourceManager extends Remote {
 	 */
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* new customer just returns a unique customer identifier */
 	public int newCustomer(int id) throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* new customer with providing id */
 	public boolean newCustomer(int id, int cid) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/**
 	 * Delete the entire flight. deleteflight implies whole deletion of the
@@ -70,9 +70,10 @@ public interface ResourceManager extends Remote {
 	 * @return success.
 	 * @throws DeadlockException
 	 * @throws TransactionAbortedException
+	 * @throws InvalidTransactionException 
 	 */
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/*
 	 * Delete all Cars from a location. It may not succeed if there are
@@ -81,7 +82,7 @@ public interface ResourceManager extends Remote {
 	 * @return success
 	 */
 	public boolean deleteCars(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/*
 	 * Delete all Rooms from a location. It may not succeed if there are
@@ -90,11 +91,11 @@ public interface ResourceManager extends Remote {
 	 * @return success
 	 */
 	public boolean deleteRooms(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* deleteCustomer removes the customer and associated reservations */
 	public boolean deleteCustomer(int id, int customer) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* queryFlight returns the number of empty seats. */
 	public int queryFlight(int id, int flightNumber) throws RemoteException,
@@ -116,35 +117,35 @@ public interface ResourceManager extends Remote {
 	/* queryFlightPrice returns the price of a seat on this flight. */
 	public int queryFlightPrice(int id, int flightNumber)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* return the price of a car at a location */
 	public int queryCarsPrice(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* return the price of a room at a location */
 	public int queryRoomsPrice(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* Reserve a seat on this flight */
 	public boolean reserveFlight(int id, int customer, int flightNumber)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* reserve a car at this location */
 	public boolean reserveCar(int id, int customer, String location)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* reserve a room certain at this location */
 	public boolean reserveRoom(int id, int customer, String locationd)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* reserve an itinerary */
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
 			String location, boolean Car, boolean Room) throws RemoteException,
-			TransactionAbortedException;
+			TransactionAbortedException, NumberFormatException, InvalidTransactionException;
 
 	public boolean removeReservations(int id, String key, int count)
 			throws RemoteException, DeadlockException;
