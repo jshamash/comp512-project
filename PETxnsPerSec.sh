@@ -39,6 +39,6 @@ done
 
 echo "Starting client $COUNTER"
 xterm -e "java -Djava.security.policy=test/client.policy -classpath .:../server:../middleware test.DistributedResponseTimeEvaluation $SERVERNAME $PORT $TXNSPERCLIENT $SECONDS $COUNTER"
-cat test/client-*.txt > master-client.txt
-rm -f test/client-*.txt
-cat test/master-client.txt
+#cat test/client-*.txt > master-client.txt
+#rm -f test/client-*.txt
+#cat test/master-client.txt
