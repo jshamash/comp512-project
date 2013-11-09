@@ -113,9 +113,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		RMItem item = null;
 
 		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.READ);
-		}
+		//TODO May need to replace synchronized block
+		lock = lockManager.Lock(id, key, LockManager.READ);
 
 		if (lock) {
 			System.out.println("Got a read lock for txn id " + id);
@@ -133,9 +132,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		boolean lock = false;
 
 		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.WRITE);
-		}
+		lock = lockManager.Lock(id, key, LockManager.WRITE);
+
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
 			this.record(id, key, value);
@@ -151,9 +149,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		RMItem item = null;
 
 		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.WRITE);
-		}
+		lock = lockManager.Lock(id, key, LockManager.WRITE);
+
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
 			this.record(id, key, null);

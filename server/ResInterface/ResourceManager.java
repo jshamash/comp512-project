@@ -99,20 +99,20 @@ public interface ResourceManager extends Remote {
 
 	/* queryFlight returns the number of empty seats. */
 	public int queryFlight(int id, int flightNumber) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* return the number of cars available at a location */
 	public int queryCars(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* return the number of rooms available at a location */
 	public int queryRooms(int id, String location) throws RemoteException,
-			DeadlockException, TransactionAbortedException;
+			DeadlockException, TransactionAbortedException, InvalidTransactionException;
 
 	/* return a bill */
 	public String queryCustomerInfo(int id, int customer)
 			throws RemoteException, DeadlockException,
-			TransactionAbortedException;
+			TransactionAbortedException, InvalidTransactionException;
 
 	/* queryFlightPrice returns the price of a seat on this flight. */
 	public int queryFlightPrice(int id, int flightNumber)

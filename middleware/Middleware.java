@@ -178,9 +178,8 @@ public class Middleware implements ResourceManager {
 		RMItem item = null;
 
 		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.READ);
-		}
+		//TODO May need to replace synchronized block
+		lock = lockManager.Lock(id, key, LockManager.READ);
 
 		if (lock) {
 			System.out.println("Got a read lock for txn id " + id);
@@ -197,10 +196,9 @@ public class Middleware implements ResourceManager {
 			throws DeadlockException {
 		boolean lock = false;
 
-		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.WRITE);
-		}
+		//TODO May need to replace synchronized block
+		lock = lockManager.Lock(id, key, LockManager.WRITE);
+
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
 			this.record(id, key, value);
@@ -216,9 +214,8 @@ public class Middleware implements ResourceManager {
 		RMItem item = null;
 
 		// Request a write lock
-		synchronized (lockManager) {
-			lock = lockManager.Lock(id, key, LockManager.WRITE);
-		}
+		//TODO May need to replace synchronized block
+		lock = lockManager.Lock(id, key, LockManager.WRITE);
 		if (lock) {
 			System.out.println("Got a write lock for txn id " + id);
 			this.record(id, key, null);
@@ -469,7 +466,7 @@ public class Middleware implements ResourceManager {
 	}
 
 	public int queryFlight(int id, int flightNumber) throws RemoteException,
-			TransactionAbortedException {
+			TransactionAbortedException, InvalidTransactionException {
 		try {
 			transactionMonitor.refresh(id);
 			t_manager.enlist(id, TransactionManager.FLIGHT);
@@ -482,15 +479,12 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
-		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return 0;
 	}
 
 	public int queryCars(int id, String location) throws RemoteException,
-			TransactionAbortedException {
+			TransactionAbortedException, InvalidTransactionException {
 		try {
 			transactionMonitor.refresh(id);
 			t_manager.enlist(id, TransactionManager.CAR);
@@ -503,15 +497,12 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
-		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return 0;
 	}
 
 	public int queryRooms(int id, String location) throws RemoteException,
-			TransactionAbortedException {
+			TransactionAbortedException, InvalidTransactionException {
 		try {
 			transactionMonitor.refresh(id);
 			t_manager.enlist(id, TransactionManager.ROOM);
@@ -524,15 +515,12 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
-		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return 0;
 	}
 
 	public String queryCustomerInfo(int id, int customerID)
-			throws RemoteException, TransactionAbortedException {
+			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
 		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
 				+ ") called");
 		try {
@@ -559,9 +547,6 @@ public class Middleware implements ResourceManager {
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
 			}
-		} catch (InvalidTransactionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		return "";
 	}

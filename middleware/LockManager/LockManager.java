@@ -36,6 +36,8 @@ public class LockManager {
 		if ((lockType != TrxnObj.READ) && (lockType != TrxnObj.WRITE)) {
 			return false;
 		}
+		
+		System.out.println("Trying to lock " + strData + " for txn " + xid + ": " + ((lockType == READ)?"READ":"WRITE"));
 
 		// two objects in lock table for easy lookup.
 		TrxnObj trxnObj = new TrxnObj(xid, strData, lockType);
@@ -90,6 +92,7 @@ public class LockManager {
 
 						} else {
 							// a lock request that is not lock conversion
+							System.out.println("adding lock: " + trxnObj.getXId() + ", " + dataObj.getDataName());
 							this.lockTable.add(trxnObj);
 							this.lockTable.add(dataObj);
 						}
@@ -97,13 +100,30 @@ public class LockManager {
 				}
 				if (bConflict) {
 					// lock conflict exists, wait
+//					System.out.println("txn " + xid + " starting wait");
 					WaitLock(dataObj);
+//					System.out.println("txn " + xid + " ending wait");
+//					if (bConvert.get(0) == true) {
+//						// We need to upgrade the lock
+//						TrxnObj tempTrans = (TrxnObj) (trxnObj.clone());
+//						tempTrans.setLockType(TrxnObj.READ);
+//						tempTrans = (TrxnObj) this.lockTable.get(tempTrans);
+//						tempTrans.setLockType(TrxnObj.WRITE);
+//
+//						DataObj tempData = (DataObj) (dataObj.clone());
+//						tempData.setLockType(DataObj.READ);
+//						tempData = (DataObj) this.lockTable.get(tempData);
+//						tempData.setLockType(DataObj.WRITE);
+//
+//						System.out.println("Converting READ lock to WRITE lock");
+//					}
 				}
 			}
 		} catch (DeadlockException deadlock) {
 			throw deadlock;
 		} catch (RedundantLockRequestException redundantlockrequest) {
 			// just ignore the redundant lock request
+			System.out.println("Redundant lock request");
 			return true;
 		}
 
@@ -159,7 +179,7 @@ public class LockManager {
 								// on the
 								// data item just unlocked.
 								Vector vect1 = this.lockTable.elements(dataObj);
-								System.out.println(vect1.size() + " other people hold this lock");
+								System.out.println(vect1.size() + " other people hold this lock");								
 
 								// remove interrupted thread from waitTable only
 								// if no
@@ -171,14 +191,31 @@ public class LockManager {
 										System.out.println("Granting a write lock!");
 										synchronized (waitObj.getThread()) {
 											waitObj.getThread().notify();
-											//TODO do we need to keep looping or should we break?
 										}
 									} catch (Exception e) {
-										System.out
-												.println("Exception on unlock\n"
-														+ e.getMessage());
+										System.out.println("Exception on unlock\n" + e.getMessage());
 									}
-								} else {
+								} else if (vect1.size() == 1) {
+									// If only one txn is locking, and it is the same as the 
+									// waiting txn, then it is trying to upgrade from a read to a write.
+									// We should free it.
+									DataObj lockHolder = (DataObj) vect1.firstElement();
+									if (lockHolder.xid == waitObj.xid && lockHolder.lockType == READ) {
+										System.out.println("Granting upgrade to a write lock!");
+										this.lockTable.remove(lockHolder);
+										this.waitTable.remove(waitObj);
+
+										try {
+											synchronized (waitObj.getThread()) {
+												waitObj.getThread().notify();
+												//TODO do we need to keep looping or should we break?
+											}
+										} catch (Exception e) {
+											System.out.println("Exception on unlock\n" + e.getMessage());
+										}
+									}
+								}
+								else {
 									// some other transaction still has a lock
 									// on
 									// the data item just unlocked. So, WRITE
@@ -233,8 +270,6 @@ public class LockManager {
 		System.out.println("Vect is " + size);
 		System.out.println("Xid is " + dataObj.getXId());
 
-		boolean changeBitset = false;
-
 		// as soon as a lock that conflicts with the current lock request is
 		// found, return true
 		for (int i = 0; i < size; i++) {
@@ -269,11 +304,9 @@ public class LockManager {
 					// We see that there were no conflict, but what if we have a
 					// conversion
 					if (size > 1) {
-						System.out.println("THIS IS 1");
 						return true;
 					} else {
 						bitset.set(0, true);
-						System.out.println("THIS IS 2");
 						return false;
 					}
 
@@ -284,10 +317,10 @@ public class LockManager {
 						// transaction is requesting a READ lock and some other
 						// transaction
 						// already has a WRITE lock on it ==> conflict
-						System.out.println("Want READ, someone has WRITE");
-						System.out.println("THIS IS 3");
+						System.out.println(dataObj.getXId() + " wants READ, "+ dataObj2.getXId() + " has WRITE");
 						return true;
 					} else {
+						System.out.println("Want READ, someone has READ, that's ok...");
 						// do nothing
 					}
 				} else if (dataObj.getLockType() == DataObj.WRITE) {
@@ -295,14 +328,13 @@ public class LockManager {
 					// transaction has either
 					// a READ or a WRITE lock on it ==> conflict
 					System.out.println("Want WRITE, someone has READ or WRITE");
-					System.out.println("THIS IS 4");
 					return true;
 				}
 			}
 		}
 
 		// no conflicting lock found, return false
-		System.out.println("THIS IS 5bitach");
+		bitset.set(0, false);
 		return false;
 
 	}
