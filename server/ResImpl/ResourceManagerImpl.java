@@ -235,12 +235,22 @@ public class ResourceManagerImpl implements ResourceManager {
 			return false;
 		} else {
 			// decrease the number of available items in the storage
-			item.setCount(item.getCount() - 1);
-			item.setReserved(item.getReserved() + 1);
-
-			Trace.info("RM::reserveItem( " + id + ", " + customerID + ", "
-					+ key + ", " + location + ") succeeded");
-			return true;
+			boolean lock = false;
+			synchronized (lockManager) {
+				lock = lockManager.Lock(id, key, LockManager.WRITE);
+			}
+			if (lock) {
+				// Modifying item. Store before image.
+				System.out.println("Got a write lock for txn id " + id);
+				this.record(id, key, (RMItem) DeepCopy.copy(item));
+				item.setReserved(item.getReserved() + 1);
+				item.setCount(item.getCount() - 1);
+				Trace.info("RM::reserveItem( " + id + ", " + customerID + ", "
+						+ key + ", " + location + ") succeeded");
+				return true;
+			}
+			return false;
+			
 		}
 	}
 
@@ -550,8 +560,18 @@ public class ResourceManagerImpl implements ResourceManager {
 					+ "which is reserved " + item.getReserved()
 					+ " times and is still available " + item.getCount()
 					+ " times");
-			item.setReserved(item.getReserved() - count);
-			item.setCount(item.getCount() + count);
+
+			boolean lock = false;
+			synchronized (lockManager) {
+				lock = lockManager.Lock(id, key, LockManager.WRITE);
+			}
+			if (lock) {
+				// Modifying item. Store before image.
+				System.out.println("Got a write lock for txn id " + id);
+				this.record(id, key, (RMItem) DeepCopy.copy(item));
+				item.setReserved(item.getReserved() - count);
+				item.setCount(item.getCount() + count);
+			}
 			return true;
 		}
 		return false;
