@@ -16,16 +16,17 @@ public class TransactionManager {
 	
 	
 	private int tid_counter;
+	private Middleware middleware_rm;
 	private ResourceManager customerRM, carRM, roomRM, flightRM;
 	protected Hashtable<Integer,LinkedList<Integer>> rm_records = new Hashtable<Integer,LinkedList<Integer>>();
 	
 	
 	//Setting Transaction Manager
-	public TransactionManager(ResourceManager cust_rm, ResourceManager car_rm, ResourceManager room_rm, ResourceManager flight_rm){
+	public TransactionManager(Middleware cust_rm, ResourceManager car_rm, ResourceManager room_rm, ResourceManager flight_rm){
 		carRM = car_rm;
 		roomRM = room_rm;
 		flightRM = flight_rm;
-		customerRM = cust_rm;
+		middleware_rm = cust_rm;
 		
 		tid_counter = 0;
 	}
