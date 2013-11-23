@@ -8,11 +8,13 @@ import java.rmi.registry.Registry;
 import java.util.*;
 import java.io.*;
 
+import middleware.Middleware;
+
 import transaction.TransactionAbortedException;
 
 public class Client {
 	static String message = "blank";
-	static ResourceManager rm = null;
+	static Middleware rm = null;
 
 	public static void main(String args[]) {
 		Client obj = new Client();
@@ -47,7 +49,7 @@ public class Client {
 			// get a reference to the rmiregistry
 			Registry registry = LocateRegistry.getRegistry(server, port);
 			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (ResourceManager) registry.lookup("Group1ResourceManager");
+			rm = (Middleware) registry.lookup("Group1ResourceManager");
 			if (rm != null) {
 				System.out.println("Successful");
 				System.out.println("Connected to RM");
@@ -722,13 +724,55 @@ public class Client {
 				break;
 			
 			case 28:
-				if (arguments.size() != 1) {
+				if (arguments.size() > 0) {
 					obj.wrongNumber();
 					break;
 				}
 				try {
-					System.out.println("Deserialized!");
-					rm.deserialize();
+					System.out.println("Attempting to crash customer RM server.");
+					rm.crash("customer");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 29:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash flight RM server.");
+					rm.crash("flight");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 30:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash car RM server.");
+					rm.crash("car");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 31:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash room RM server.");
+					rm.crash("room");
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -811,10 +855,16 @@ public class Client {
 			return 26;
 		else if (argument.compareToIgnoreCase("dump") == 0)
 			return 27;
-		else if (argument.compareToIgnoreCase("deserialize") == 0)
+		else if (argument.compareToIgnoreCase("crashcustomer") == 0)
 			return 28;
+		else if (argument.compareToIgnoreCase("crashflight") == 0)
+			return 29;
+		else if (argument.compareToIgnoreCase("crashcar") == 0)
+			return 30;
+		else if (argument.compareToIgnoreCase("crashroom") == 0)
+			return 31;
 		else
-			return 666;
+			return 666; // LOL
 
 	}
 
@@ -1071,12 +1121,36 @@ public class Client {
 			System.out.println("\tdump");
 			break;
 			
-		case 28: // deserialize
-			System.out.println("Deserialize hashtables from disk");
+		case 28: // Crash Customer RM server
+			System.out.println("Crash Customer RM server");
 			System.out.println("Purpose:");
-			System.out.println("\tDebugging");
+			System.out.println("\tClient is able to crash the server handling customer related requests");
 			System.out.println("\nUsage:");
-			System.out.println("\tdeserialize");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+			
+		case 29: // Crash Flight RM server
+			System.out.println("Crash Flight RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling flight related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+
+		case 30: // Crash Car RM server
+			System.out.println("Crash Car RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling car related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+			
+		case 31: // Crash Room RM server
+			System.out.println("Crash room RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling room related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
 			break;
 
 		default:

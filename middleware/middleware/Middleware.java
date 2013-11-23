@@ -43,7 +43,7 @@ public class Middleware implements ResourceManager {
 	static ResourceManager flightRM = null;
 	static ResourceManager carRM = null;
 	static ResourceManager roomRM = null;
-
+	
 	protected RMHashtable m_itemHT = new RMHashtable();
 
 	// Create a transaction hashtable to store transaction data --> this will be
@@ -147,6 +147,10 @@ public class Middleware implements ResourceManager {
 		}
 	}
 
+	public void init() throws RemoteException{
+		
+	}
+	
 	private void record(int xid, String key, RMItem newItem) {
 		// Get the record for this txn
 		HashMap<String, RMItem> record;
@@ -813,7 +817,7 @@ public class Middleware implements ResourceManager {
 
 	// Creating new Start, commit and abort methods here
 	// Start
-	public int start() {
+	public int start() throws RemoteException{
 		int newTID = -1;
 
 		synchronized (t_manager) {
@@ -1015,6 +1019,32 @@ public class Middleware implements ResourceManager {
 		}.start();
 
 		return success;
+	}
+	
+	//This method is much more complex than it actually looks like. Before the beginning of times servers have never existed.
+	//Now this new terror arises and a hero can call this function to undo the evils done by these malicious servers. From the 
+	//age of magic to the age of robotics, we have yet to find the very answer for completely destroying and preventing servers
+	//from terrorising little children....Until now, a hero has arised who built this very function, permitting any client from
+	//crashing these evil creatures in a powerful manner. But such power might be too much to handle for the human race, and
+	//there is only one thing we can do... : "Never gonna give you up, never gonna ..."
+	public boolean crash(String which) throws RemoteException
+	{
+		//Tells which RM crashes
+		if(which.equals("customer")){
+			//Tricky piece of shizzle mah dizzling broatha!
+			//Yezzzzz :D!
+			
+			shutdown();
+		}else if(which.equals("flight")){
+			if(!flightRM.shutdown()) return false;
+		}else if(which.equals("car")){
+			if(!carRM.shutdown()) return false;
+		}else if(which.equals("room"))
+		{
+			if(!roomRM.shutdown()) return false;
+		}
+		
+		return true;
 	}
 
 	public void dump() throws RemoteException {
