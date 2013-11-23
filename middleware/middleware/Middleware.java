@@ -1,4 +1,12 @@
 package middleware;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
@@ -19,6 +27,7 @@ import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResImpl.Car;
+import ResImpl.Constants;
 import ResImpl.Customer;
 import ResImpl.DeepCopy;
 import ResImpl.Flight;
@@ -44,6 +53,7 @@ public class Middleware implements ResourceManager {
 	TransactionManager t_manager;
 	LockManager lockManager = new LockManager();
 	TransactionMonitor transactionMonitor;
+	private String filename;
 
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
@@ -120,6 +130,13 @@ public class Middleware implements ResourceManager {
 			registry.rebind("Group1ResourceManager", rm);
 
 			System.err.println("Server ready");
+			
+			// Initialize the RMs
+			flightRM.setObjectFilename(Constants.FLIGHT_FILE);
+			carRM.setObjectFilename(Constants.CAR_FILE);
+			roomRM.setObjectFilename(Constants.ROOM_FILE);
+			obj.setObjectFilename(Constants.CUSTOMER_FILE);
+			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
 			e.printStackTrace();
@@ -629,7 +646,7 @@ public class Middleware implements ResourceManager {
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -643,9 +660,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveCar(int id, int customerID, String location)
@@ -681,9 +698,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveRoom(int id, int customerID, String location)
@@ -705,7 +722,7 @@ public class Middleware implements ResourceManager {
 				// Item was successfully marked reserved by RM
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Hotel.getKey(location), location, price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -719,9 +736,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	/**
@@ -966,6 +983,10 @@ public class Middleware implements ResourceManager {
 	 */
 	public boolean shutdown() throws RemoteException {
 		boolean success = false;
+		
+		// TODO this is just for testing right now
+		this.serialize();
+		
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
 
 		UnicastRemoteObject.unexportObject(this, true);
@@ -1001,5 +1022,44 @@ public class Middleware implements ResourceManager {
 		carRM.dump();
 		roomRM.dump();
 		flightRM.dump();
+	}
+
+	@Override
+	public void serialize() throws RemoteException {
+		flightRM.serialize();
+		roomRM.serialize();
+		carRM.serialize();
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
+			out.writeObject(m_itemHT);
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}		
+	}
+
+	@Override
+	public void deserialize() throws RemoteException {
+		flightRM.deserialize();
+		roomRM.deserialize();
+		carRM.deserialize();
+		try {
+			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
+			m_itemHT = (RMHashtable) in.readObject();
+			in.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void setObjectFilename(String filename) throws RemoteException {
+		this.filename = filename;		
 	}
 }

@@ -170,5 +170,11 @@ public interface ResourceManager extends Remote {
 	 * Prints the content of this RM's hashtable (for debugging purposes).
 	 */
 	public void dump() throws RemoteException;
+	
+	public void serialize() throws RemoteException;
+	
+	public void deserialize() throws RemoteException;
+	
+	public void setObjectFilename(String filename) throws RemoteException;
 
 }
