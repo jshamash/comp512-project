@@ -164,6 +164,8 @@ public interface ResourceManager extends Remote {
 
 	public boolean firstPhaseACK(int xid) throws RemoteException;
 	
+	public void init() throws RemoteException;
+	
 	/**
 	 * Prints the content of this RM's hashtable (for debugging purposes).
 	 */

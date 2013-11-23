@@ -70,6 +70,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	public ResourceManagerImpl() throws RemoteException {
 	}
 	
+	public void init() throws RemoteException{}
+	
 	private void record(int xid, String key, RMItem newItem) {
 		// Get the record for this txn
 		HashMap<String, RMItem> record = t_records.get(xid);
