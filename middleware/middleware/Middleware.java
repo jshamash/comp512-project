@@ -820,7 +820,7 @@ public class Middleware implements ResourceManager {
 			// Get a brand new fresh id for this newly created transaction
 			newTID = t_manager.start();
 		}
-		transactionMonitor.refresh(newTID);
+		transactionMonitor.create(newTID);
 
 		return newTID;// Give the customer its requestion xid
 	}
@@ -852,29 +852,47 @@ public class Middleware implements ResourceManager {
 	@Override
 	public boolean commit(int xid) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
-		// Start by calling the commit function in the Transaction Manager
-		// This tells us whether we have to execute commit on the customer hash
-		// table
+		
+		//Start by removing watch counter on the transaction
 		transactionMonitor.unwatch(xid);
-		if (t_manager.commit(xid)) {
-
-			Object removedObject = t_records.remove(xid);
-			if (removedObject == null) {
-				System.out.println("TID: " + xid
-						+ " has no hashtable entry in customer RM.");
-				return false;// if there was no hash table fho dis transaction
-								// ID
-			}
-
-			System.out
-					.println("Successfully found and removed hash table TID: "
-							+ xid + " from customer RM.");
-
-			// Now unlock all locks related to the xid
-			lockManager.UnlockAll(xid); // --> does not need to be synchronized,
-										// since unlockAll method takes care of
-										// that
+		
+		//First phase of 2PC
+		if(!t_manager.prepare(xid)){
+			abort(xid);
+			return false;
 		}
+		
+		//Try to commit using 2PC
+		if(t_manager.commit(xid)){
+			System.out.println("Successfully committed TID: "+ xid);
+			return true;
+		}
+		
+		System.out.println("Unsuccessfully committed TID: "+ xid);
+		return false;
+	}
+	
+	//Special function specific to the middleware to handle customer commit
+	public boolean middlewareCommit(int xid) throws RemoteException,
+			TransactionAbortedException, InvalidTransactionException {
+
+		Object removedObject = t_records.remove(xid);
+		if (removedObject == null) {
+			System.out.println("TID: " + xid
+					+ " has no hashtable entry in customer RM.");
+			return false;// if there was no hash table fho dis transaction
+							// ID
+		}
+	
+		System.out
+				.println("Successfully found and removed hash table TID: "
+						+ xid + " from customer RM.");
+	
+		// Now unlock all locks related to the xid
+		lockManager.UnlockAll(xid); // --> does not need to be synchronized,
+									// since unlockAll method takes care of
+									// that
+		
 		System.out.println("Successfully found and removed hash table TID: "
 				+ xid + " from room/flight/car RMs.");
 		return true;
@@ -887,68 +905,77 @@ public class Middleware implements ResourceManager {
 	 */
 	public void abort(int xid) throws RemoteException,
 			InvalidTransactionException {
+		// Start by removing watch timer on this transaction
+		transactionMonitor.unwatch(xid);
+		
+		// Tell TM to attempt 
+		t_manager.abort(xid);
+	}
+	
+	//Special function specific to the middleware to handle customer abort
+	public void middlewareAbort(int xid) throws RemoteException,
+	InvalidTransactionException {
 		// Call TM abort to abort rms, and to tell this function if customer
 		// also has to abort
-		try {
-			transactionMonitor.unwatch(xid);
-			if (t_manager.abort(xid)) {
+		System.out.println("Attempting to abort transaction " + xid
+				+ " from customer RM.");
 
-				System.out.println("Attempting to abort transaction " + xid
-						+ " from customer RM.");
+		HashMap<String, RMItem> r_table = t_records.remove(xid);
 
-				HashMap<String, RMItem> r_table = t_records.remove(xid);
+		if (r_table == null) {
+			System.out.println("TID: " + xid
+					+ " has no hashtable entry in RM.");
+		} else {
+			System.out.println(r_table.size()
+					+ " entries have been found in the hash table");
 
-				if (r_table == null) {
-					System.out.println("TID: " + xid
-							+ " has no hashtable entry in RM.");
-				} else {
-					System.out.println(r_table.size()
-							+ " entries have been found in the hash table");
+			Set<String> keys = r_table.keySet();
+			RMItem tmp_item;
 
-					Set<String> keys = r_table.keySet();
-					RMItem tmp_item;
+			synchronized (m_itemHT) {
+				// Loop through all elements in the removed hash table
+				// and reset their original value inside the RM's hash
+				// table
+				for (String key : keys) {
+					tmp_item = (RMItem) r_table.get(key);
 
-					synchronized (m_itemHT) {
-						// Loop through all elements in the removed hash table
-						// and reset their original value inside the RM's hash
+					if (tmp_item == null) {
+						System.out
+								.println("We need to remove  element-key: "
+										+ key
+										+ " item from the RM's hash table.");
+						// We need to remove this item from the RM's
+						// hash table
+						m_itemHT.remove(key);
+					} else {
+						System.out
+								.println("We need to add  element-key: "
+										+ key
+										+ " item to the RM's hash table.");
+						// We need to add this item to this RM's hash
 						// table
-						for (String key : keys) {
-							tmp_item = (RMItem) r_table.get(key);
-
-							if (tmp_item == null) {
-								System.out
-										.println("We need to remove  element-key: "
-												+ key
-												+ " item from the RM's hash table.");
-								// We need to remove this item from the RM's
-								// hash table
-								m_itemHT.remove(key);
-							} else {
-								System.out
-										.println("We need to add  element-key: "
-												+ key
-												+ " item to the RM's hash table.");
-								// We need to add this item to this RM's hash
-								// table
-								m_itemHT.put(key, (RMItem) tmp_item);
-							}
-						}
+						m_itemHT.put(key, (RMItem) tmp_item);
 					}
-
-					// Now unlock all locks related to the xid
-					lockManager.UnlockAll(xid);
-
 				}
-
-				System.out.println("Successfully aborted aborted transaction "
-						+ xid + " from customer RM.");
-
 			}
-		} catch (InvalidTransactionException e) {
-			System.out.println(e.getMessage());
+
+			// Now unlock all locks related to the xid
+			lockManager.UnlockAll(xid);
+
 		}
+
+		System.out.println("Successfully aborted aborted transaction "
+				+ xid + " from customer RM.");
 	}
 
+	public boolean firstPhaseACK(int xid) throws RemoteException{
+		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
+		
+		//For now we will only assume that this firstTimeACK always returns true
+		
+		return true;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
