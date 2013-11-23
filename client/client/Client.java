@@ -720,6 +720,21 @@ public class Client {
 					e.printStackTrace();
 				}
 				break;
+			
+			case 28:
+				if (arguments.size() != 1) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Deserialized!");
+					rm.deserialize();
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
 
 			default:
 				System.out
@@ -796,6 +811,8 @@ public class Client {
 			return 26;
 		else if (argument.compareToIgnoreCase("dump") == 0)
 			return 27;
+		else if (argument.compareToIgnoreCase("deserialize") == 0)
+			return 28;
 		else
 			return 666;
 
@@ -1052,6 +1069,14 @@ public class Client {
 			System.out.println("\tDebugging");
 			System.out.println("\nUsage:");
 			System.out.println("\tdump");
+			break;
+			
+		case 28: // deserialize
+			System.out.println("Deserialize hashtables from disk");
+			System.out.println("Purpose:");
+			System.out.println("\tDebugging");
+			System.out.println("\nUsage:");
+			System.out.println("\tdeserialize");
 			break;
 
 		default:

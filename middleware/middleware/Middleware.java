@@ -1,4 +1,12 @@
 package middleware;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
@@ -44,6 +52,7 @@ public class Middleware implements ResourceManager {
 	TransactionManager t_manager;
 	LockManager lockManager = new LockManager();
 	TransactionMonitor transactionMonitor;
+	private String filename;
 
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
@@ -120,6 +129,13 @@ public class Middleware implements ResourceManager {
 			registry.rebind("Group1ResourceManager", rm);
 
 			System.err.println("Server ready");
+			
+			// Initialize the RMs
+			flightRM.setObjectFilename("flights.ser");
+			carRM.setObjectFilename("cars.ser");
+			roomRM.setObjectFilename("rooms.ser");
+			obj.setObjectFilename("customers.ser");
+			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
 			e.printStackTrace();
@@ -939,6 +955,10 @@ public class Middleware implements ResourceManager {
 	 */
 	public boolean shutdown() throws RemoteException {
 		boolean success = false;
+		
+		// TODO this is just for testing right now
+		this.serialize();
+		
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
 
 		UnicastRemoteObject.unexportObject(this, true);
@@ -974,5 +994,44 @@ public class Middleware implements ResourceManager {
 		carRM.dump();
 		roomRM.dump();
 		flightRM.dump();
+	}
+
+	@Override
+	public void serialize() throws RemoteException {
+		flightRM.serialize();
+		roomRM.serialize();
+		carRM.serialize();
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
+			out.writeObject(m_itemHT);
+			out.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}		
+	}
+
+	@Override
+	public void deserialize() throws RemoteException {
+		flightRM.deserialize();
+		roomRM.deserialize();
+		carRM.deserialize();
+		try {
+			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
+			m_itemHT = (RMHashtable) in.readObject();
+			in.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void setObjectFilename(String filename) throws RemoteException {
+		this.filename = filename;		
 	}
 }
