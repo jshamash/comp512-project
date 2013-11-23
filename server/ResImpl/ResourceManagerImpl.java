@@ -596,7 +596,10 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
-		// Start by removing the hashtable entry for this transaction ID inside
+		//Begin by storing all committed data into a file
+		
+		
+		// Continue by removing the hashtable entry for this transaction ID inside
 		// the transaction record
 		Object removedObject = t_records.remove(xid);
 		if (removedObject == null)
@@ -605,7 +608,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Now unlock all locks related to the xid
 		lockManager.UnlockAll(xid); //--> does not need
 		// to be synchronized, since unlockAll method takes care of that
-
+		
+		//Commit successfull, remove transaction
 		return true;
 	}
 
@@ -703,6 +707,14 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Returns 0 to tell that there were no ID created if this method is
 		// ever called
 		return 0;
+	}
+	
+	public boolean firstPhaseACK(int xid) throws RemoteException{
+		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
+		
+		//For now we will only assume that this firstTimeACK always returns true
+		
+		return true;
 	}
 	
 	public void dump() throws RemoteException {
