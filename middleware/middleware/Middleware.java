@@ -27,6 +27,7 @@ import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResImpl.Car;
+import ResImpl.Constants;
 import ResImpl.Customer;
 import ResImpl.DeepCopy;
 import ResImpl.Flight;
@@ -131,10 +132,10 @@ public class Middleware implements ResourceManager {
 			System.err.println("Server ready");
 			
 			// Initialize the RMs
-			flightRM.setObjectFilename("flights.ser");
-			carRM.setObjectFilename("cars.ser");
-			roomRM.setObjectFilename("rooms.ser");
-			obj.setObjectFilename("customers.ser");
+			flightRM.setObjectFilename(Constants.FLIGHT_FILE);
+			carRM.setObjectFilename(Constants.CAR_FILE);
+			roomRM.setObjectFilename(Constants.ROOM_FILE);
+			obj.setObjectFilename(Constants.CUSTOMER_FILE);
 			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
@@ -645,7 +646,7 @@ public class Middleware implements ResourceManager {
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -659,9 +660,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveCar(int id, int customerID, String location)
@@ -697,9 +698,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveRoom(int id, int customerID, String location)
@@ -721,7 +722,7 @@ public class Middleware implements ResourceManager {
 				// Item was successfully marked reserved by RM
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Hotel.getKey(location), location, price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -735,9 +736,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	/**
