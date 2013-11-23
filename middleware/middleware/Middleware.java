@@ -1,3 +1,4 @@
+package middleware;
 import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;

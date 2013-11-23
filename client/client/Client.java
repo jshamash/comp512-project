@@ -1,3 +1,4 @@
+package client;
 import java.rmi.*;
 
 import ResInterface.*;
