@@ -175,6 +175,8 @@ public interface ResourceManager extends Remote {
 	
 	public void deserialize() throws RemoteException;
 	
-	public void setObjectFilename(String filename) throws RemoteException;
+	public void initialize(String ptr_filename) throws RemoteException;
+	
+	public boolean prepare(int transactionID) throws RemoteException;
 
 }

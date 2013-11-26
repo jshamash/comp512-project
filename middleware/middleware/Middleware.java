@@ -1,9 +1,13 @@
 package middleware;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -53,7 +57,9 @@ public class Middleware implements ResourceManager {
 	TransactionManager t_manager;
 	LockManager lockManager = new LockManager();
 	TransactionMonitor transactionMonitor;
-	private String filename;
+	
+	private String ptr_filename;
+	private String ser_master;
 
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
@@ -132,10 +138,10 @@ public class Middleware implements ResourceManager {
 			System.err.println("Server ready");
 			
 			// Initialize the RMs
-			flightRM.setObjectFilename(Constants.FLIGHT_FILE);
-			carRM.setObjectFilename(Constants.CAR_FILE);
-			roomRM.setObjectFilename(Constants.ROOM_FILE);
-			obj.setObjectFilename(Constants.CUSTOMER_FILE);
+			flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+			carRM.initialize(Constants.CAR_FILE_PTR);
+			roomRM.initialize(Constants.ROOM_FILE_PTR);
+			obj.initialize(Constants.CUSTOMER_FILE_PTR);
 			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
@@ -847,6 +853,24 @@ public class Middleware implements ResourceManager {
 							+ xid);
 		}
 	}
+	
+	public boolean prepare(int transactionID) {
+		// Begin by storing all committed data into a file
+		// Write to the non-master file
+		String writeFile = Constants.getInverse(ser_master);
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
+			out.writeObject(m_itemHT);
+			out.close();
+			return true;
+		} catch (FileNotFoundException e) {
+			// This should never happen
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -888,9 +912,7 @@ public class Middleware implements ResourceManager {
 							// ID
 		}
 	
-		System.out
-				.println("Successfully found and removed hash table TID: "
-						+ xid + " from customer RM.");
+		System.out.println("Successfully found and removed hash table TID: " + xid + " from customer RM.");
 	
 		// Now unlock all locks related to the xid
 		lockManager.UnlockAll(xid); // --> does not need to be synchronized,
@@ -898,7 +920,18 @@ public class Middleware implements ResourceManager {
 									// that
 		
 		System.out.println("Successfully found and removed hash table TID: "
-				+ xid + " from room/flight/car RMs.");
+				+ xid + " from customer RM.");
+		
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+			out.write(newMaster);
+			out.close();
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return true;
 	}
 
@@ -1060,7 +1093,11 @@ public class Middleware implements ResourceManager {
 		roomRM.serialize();
 		carRM.serialize();
 		try {
-			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
+			in.close();
+			
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(ser_master)));
 			out.writeObject(m_itemHT);
 			out.close();
 		} catch (FileNotFoundException e) {
@@ -1076,9 +1113,13 @@ public class Middleware implements ResourceManager {
 		roomRM.deserialize();
 		carRM.deserialize();
 		try {
-			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
-			m_itemHT = (RMHashtable) in.readObject();
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
 			in.close();
+			
+			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
+			m_itemHT = (RMHashtable) inObj.readObject();
+			inObj.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -1089,7 +1130,39 @@ public class Middleware implements ResourceManager {
 	}
 
 	@Override
-	public void setObjectFilename(String filename) throws RemoteException {
-		this.filename = filename;		
+	public void initialize(String ptr_filename) throws RemoteException {
+		this.ptr_filename = ptr_filename;
+		
+
+		try {
+			// Get location of master file
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
+			in.close();
+		} catch (FileNotFoundException e1) {
+			// No pointer file yet, so create one that points to <customers file 1>.
+			try {
+				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+				out.write(Constants.CUSTOMER_FILE_1);
+				out.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		try {
+			// Initialize the hashtable with the contents of ser_master
+			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
+			m_itemHT = (RMHashtable) inObj.readObject();
+			inObj.close();
+		} catch (FileNotFoundException e) {
+			// hashtable has never been serialized... so it will be initialized as empty.
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -11,9 +11,13 @@ import ResInterface.*;
 import java.util.*;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -36,8 +40,9 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	private LockManager lockManager = new LockManager();
 
-	private String filename;
-
+	private String ptr_filename;
+	private String ser_master;
+	
 	static String server = "localhost";
 	static int port = 1099;
 
@@ -600,6 +605,27 @@ public class ResourceManagerImpl implements ResourceManager {
 			System.out.println("RM has successfully create a hash map entry for TID: "+xid);
 		}
 	}
+	
+	/**
+	 * Prepares for a commit.
+	 */
+	public boolean prepare(int transactionID) throws RemoteException {
+		//Begin by storing all committed data into a file
+		// Write to the non-master file
+		String writeFile = Constants.getInverse(ser_master);
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
+			out.writeObject(m_itemHT);
+			out.close();
+			return true;
+		} catch (FileNotFoundException e) {
+			// This should never happen
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -607,11 +633,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
-		//Begin by storing all committed data into a file
 		
-		
-		// Continue by removing the hashtable entry for this transaction ID inside
-		// the transaction record
+		// Remove the hashtable entry for this transaction ID inside the transaction record
 		Object removedObject = t_records.remove(xid);
 		if (removedObject == null)
 			return false;// if there was no hash table fho dis transaction ID
@@ -620,7 +643,18 @@ public class ResourceManagerImpl implements ResourceManager {
 		lockManager.UnlockAll(xid); //--> does not need
 		// to be synchronized, since unlockAll method takes care of that
 		
-		//Commit successfull, remove transaction
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+			out.write(newMaster);
+			out.close();
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//Commit successful
 		return true;
 	}
 
@@ -733,34 +767,69 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 	
 	public void serialize() throws RemoteException {
-		try {
-			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
-			out.writeObject(m_itemHT);
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
+//			out.writeObject(m_itemHT);
+//			out.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	public void deserialize() throws RemoteException {
+//		try {
+//			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
+//			m_itemHT = (RMHashtable) in.readObject();
+//			in.close();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} catch (ClassNotFoundException e) {
+//			e.printStackTrace();
+//		}
+	}
+
+	@Override
+	public void initialize(String ptr_filename) throws RemoteException {
+		this.ptr_filename = ptr_filename;
+		
 		try {
-			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
-			m_itemHT = (RMHashtable) in.readObject();
+			// Get location of master file
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
 			in.close();
+		} catch (FileNotFoundException e1) {
+			// No pointer file yet, so create one that points to <type> file 1.
+			String file1 = "";
+			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) file1 = Constants.CAR_FILE_1;
+			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
+			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
+			try {
+				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+				out.write(file1);
+				out.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		try {
+			// Initialize the hashtable with the contents of ser_master
+			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
+			m_itemHT = (RMHashtable) inObj.readObject();
+			inObj.close();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			// hashtable has never been serialized... so it will be initialized as empty.
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-	}
-
-	@Override
-	public void setObjectFilename(String filename) throws RemoteException {
-		this.filename = filename;
 	}
 
 }
