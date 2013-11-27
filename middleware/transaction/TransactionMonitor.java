@@ -19,8 +19,14 @@ public class TransactionMonitor extends Thread {
 		this.rm = rm;
 	}
 
-	public void refresh(int xid) {
+	public void create(int xid) {
 		ttl_records.put(xid, System.currentTimeMillis());
+	}
+	
+	public void refresh(int xid) throws TransactionAbortedException{
+		if(ttl_records.containsKey(xid))
+			ttl_records.put(xid, System.currentTimeMillis());
+		else throw new TransactionAbortedException(xid, "XID does not exists.");
 	}
 
 	public void unwatch(int xid) {

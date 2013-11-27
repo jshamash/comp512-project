@@ -1,15 +1,24 @@
 #!/bin/bash
 
+SRC=${PWD}
+
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware/
 
 #Setting values for server name and server port
-if [ $# -eq 2 ];then
+
+if [ $# -eq 2 ];then 
 	SERVERNAME=$1
 	PORT=$2
+elif [ $# -eq 3 ];then 
+	SERVERNAME=$1
+	PORT=$2
+	FILE=$3
 else
-	echo "Usage: ./clientscript <middleware-hostname> <middleware-port>"
+	echo "Usage: ./clientscript.sh <middleware-hostname> <middleware-port>"
 	exit -1
 fi
 
@@ -18,5 +27,5 @@ echo "Port is $PORT"
 echo "Starting client..."
 cd ./client/
 echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; };" > client.policy
-javac *.java
-java -Djava.security.policy=client.policy -classpath .:../server:../middleware Client $SERVERNAME $PORT
+javac client/*.java
+java -Djava.security.policy=client.policy -classpath .:../server:../middleware client.Client $SERVERNAME $PORT $SRC/$FILE

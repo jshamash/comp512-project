@@ -9,6 +9,8 @@
 #	1 - Port number of the server
 #		> RMIRegistry will be set using this number
 
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware
@@ -17,7 +19,7 @@ export CLASSPATH=$VAR/server/:$VAR/middleware
 if [ $# -eq 1 ];then
 	PORT=$1
 else
-	echo "Usage: ./serverscript <listen-port>"
+	echo "Usage: ./serverscript.sh <listen-port>"
 	exit -1
 fi
 echo "port is $PORT"

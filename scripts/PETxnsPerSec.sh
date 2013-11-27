@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware/
@@ -12,7 +14,7 @@ if [ $# -eq 5 ];then
 	TXNS=$4
 	SECONDS=$5
 else
-	echo "Usage: ./PETxnsPerSec <middleware-hostname> <middleware-port> <num-clients> <txns-per-sec> <seconds>"
+	echo "Usage: ./PETxnsPerSec.sh <middleware-hostname> <middleware-port> <num-clients> <txns-per-sec> <seconds>"
 	exit -1
 fi
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware/
@@ -10,7 +12,7 @@ if [ $# -eq 3 ];then
 	PORT=$2
 	ITER=$3
 else
-	echo "Usage: ./clientscript <middleware-hostname> <middleware-port> <iterations>"
+	echo "Usage: ./clientscript.sh <middleware-hostname> <middleware-port> <iterations>"
 	exit -1
 fi
 

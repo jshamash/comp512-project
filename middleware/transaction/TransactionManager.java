@@ -1,7 +1,10 @@
 package transaction;
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
+
+import middleware.Middleware;
 
 import ResInterface.ResourceManager;
 
@@ -16,12 +19,13 @@ public class TransactionManager {
 	
 	
 	private int tid_counter;
-	private ResourceManager customerRM, carRM, roomRM, flightRM;
+	private Middleware customerRM;
+	private ResourceManager carRM, roomRM, flightRM;
 	protected Hashtable<Integer,LinkedList<Integer>> rm_records = new Hashtable<Integer,LinkedList<Integer>>();
 	
 	
 	//Setting Transaction Manager
-	public TransactionManager(ResourceManager cust_rm, ResourceManager car_rm, ResourceManager room_rm, ResourceManager flight_rm){
+	public TransactionManager(Middleware cust_rm, ResourceManager car_rm, ResourceManager room_rm, ResourceManager flight_rm){
 		carRM = car_rm;
 		roomRM = room_rm;
 		flightRM = flight_rm;
@@ -94,6 +98,51 @@ public class TransactionManager {
 		return new_xid;
 	}
 	
+	//Prepare functions that takes care of executing the first phase of 2PC, i.e. test if any of the servers have crashed
+	public boolean prepare(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException{
+		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
+		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
+		LinkedList<Integer> rm_list = rm_records.get(xid);
+		
+		for(Integer i : rm_list){
+			switch(i){
+			case CUSTOMER:
+				try{
+					if(!customerRM.firstPhaseACK(xid)) return false;
+				}catch(Exception e){
+					return false;
+				}
+				break;
+			case CAR:
+				try{
+					if(!carRM.firstPhaseACK(xid)) return false;
+				}catch(Exception e){
+					return false;
+				}
+				break;
+			case ROOM:
+				try{
+					if(!roomRM.firstPhaseACK(xid)) return false;
+				}catch(Exception e){
+					return false;
+				}
+				break;
+			case FLIGHT:
+				try{
+					if(!flightRM.firstPhaseACK(xid)) return false;
+				}catch(Exception e){
+					return false;
+				}
+				break;
+			}
+			
+		}
+		
+		
+		return true;
+	}
+	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
 	public boolean commit(int xid) throws InvalidTransactionException{
@@ -101,57 +150,63 @@ public class TransactionManager {
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
-		boolean excCustCommit= false;
 		
 		for(Integer i : rm_list){
 			switch(i){
 				case CUSTOMER:
-					excCustCommit = true;					
+					try{
+						System.out.println("Attempting to commit transaction "+ xid+ " from customer RM.");
+						if(!customerRM.middlewareCommit(xid)) return false;
+						System.out.println("Successfully committed transaction "+xid+" from customer RM.");
+					}catch(Exception e){return false;}				
 					break;
 					
 				case CAR:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from car RM.");
-						carRM.commit(xid);
+						if(!carRM.commit(xid)) return false;
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
-					}catch(Exception e){}
+					}catch(Exception e){return false;}
 					break;
 					
 				case ROOM:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from room RM.");
-						roomRM.commit(xid);
+						if(!roomRM.commit(xid)) return false;
 						System.out.println("Successfully committed transaction "+xid+" from room RM.");
-					}catch(Exception e){}
+					}catch(Exception e){return false;}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from flight RM.");
-						flightRM.commit(xid);
+						if(!flightRM.commit(xid))return false;
 						System.out.println("Successfully committed transaction "+xid+" from flight RM.");
-					}catch(Exception e){}
+					}catch(Exception e){return false;}
 					break;
 			}
 		}
 		
-		return excCustCommit;
+		return true;
 	}
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
-	public boolean abort(int xid) throws InvalidTransactionException{
+	public void abort(int xid) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		System.out.println("Aborting transaction "+xid);
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
-		boolean excCustAbort= false;
 		
 		for(Integer i : rm_list){
 			switch(i){
 				case CUSTOMER:
-					excCustAbort = true;
+					System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");
+					try {
+						customerRM.middlewareAbort(xid);
+					} catch (RemoteException e1) {}
+					System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
 					break;
 					
 				case CAR:
@@ -178,7 +233,5 @@ public class TransactionManager {
 					break;
 			}
 		}
-		
-		return excCustAbort;
 	}
 }

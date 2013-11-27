@@ -162,9 +162,17 @@ public interface ResourceManager extends Remote {
 
 	public boolean shutdown() throws RemoteException;
 
+	public boolean firstPhaseACK(int xid) throws RemoteException;
+		
 	/**
 	 * Prints the content of this RM's hashtable (for debugging purposes).
 	 */
 	public void dump() throws RemoteException;
+	
+	public void initialize(String ptr_filename) throws RemoteException;
+	
+	public boolean prepare(int transactionID) throws RemoteException, TransactionAbortedException, InvalidTransactionException;
+
+	public boolean crash(String which) throws RemoteException;
 
 }

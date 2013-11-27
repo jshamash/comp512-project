@@ -1,3 +1,17 @@
+package middleware;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
@@ -18,6 +32,7 @@ import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResImpl.Car;
+import ResImpl.Constants;
 import ResImpl.Customer;
 import ResImpl.DeepCopy;
 import ResImpl.Flight;
@@ -33,7 +48,7 @@ public class Middleware implements ResourceManager {
 	static ResourceManager flightRM = null;
 	static ResourceManager carRM = null;
 	static ResourceManager roomRM = null;
-
+	
 	protected RMHashtable m_itemHT = new RMHashtable();
 
 	// Create a transaction hashtable to store transaction data --> this will be
@@ -43,6 +58,9 @@ public class Middleware implements ResourceManager {
 	TransactionManager t_manager;
 	LockManager lockManager = new LockManager();
 	TransactionMonitor transactionMonitor;
+	
+	private String ptr_filename;
+	private String ser_master;
 
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
@@ -110,15 +128,19 @@ public class Middleware implements ResourceManager {
 			// At this point we are a client to the three RM servers.
 			// Now, establish server connection to serve client(s).
 			Middleware obj = new Middleware();
+			
+			// Initialize the RMs
+			//obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			
 			// dynamically generate the stub (client proxy)
-			ResourceManager rm = (ResourceManager) UnicastRemoteObject
-					.exportObject(obj, 0);
+			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
 			// Bind the remote object's stub in the registry
 			registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind("Group1ResourceManager", rm);
 
 			System.err.println("Server ready");
+			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
 			e.printStackTrace();
@@ -128,7 +150,7 @@ public class Middleware implements ResourceManager {
 			System.setSecurityManager(new RMISecurityManager());
 		}
 	}
-
+	
 	private void record(int xid, String key, RMItem newItem) {
 		// Get the record for this txn
 		HashMap<String, RMItem> record;
@@ -628,7 +650,7 @@ public class Middleware implements ResourceManager {
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -642,9 +664,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveCar(int id, int customerID, String location)
@@ -680,9 +702,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	public boolean reserveRoom(int id, int customerID, String location)
@@ -704,7 +726,7 @@ public class Middleware implements ResourceManager {
 				// Item was successfully marked reserved by RM
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Hotel.getKey(location), location, price);
-				writeData(id, cust.getKey(), cust);
+				writeData(id, cust.getKey(), updatedCust);
 				return true;
 			}
 
@@ -718,9 +740,9 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+				throw new InvalidTransactionException(id, e1.getMessage());
 			}
 		}
-		return false;
 	}
 
 	/**
@@ -795,14 +817,14 @@ public class Middleware implements ResourceManager {
 
 	// Creating new Start, commit and abort methods here
 	// Start
-	public int start() {
+	public int start() throws RemoteException{
 		int newTID = -1;
 
 		synchronized (t_manager) {
 			// Get a brand new fresh id for this newly created transaction
 			newTID = t_manager.start();
 		}
-		transactionMonitor.refresh(newTID);
+		transactionMonitor.create(newTID);
 
 		return newTID;// Give the customer its requestion xid
 	}
@@ -825,6 +847,26 @@ public class Middleware implements ResourceManager {
 							+ xid);
 		}
 	}
+	
+	public boolean prepare(int transactionID) {
+		//TODO throw the exceptions
+		
+		// Begin by storing all committed data into a file
+		// Write to the non-master file
+		String writeFile = Constants.getInverse(ser_master);
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
+			out.writeObject(m_itemHT);
+			out.close();
+			return true;
+		} catch (FileNotFoundException e) {
+			// This should never happen
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -834,31 +876,59 @@ public class Middleware implements ResourceManager {
 	@Override
 	public boolean commit(int xid) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
-		// Start by calling the commit function in the Transaction Manager
-		// This tells us whether we have to execute commit on the customer hash
-		// table
+		
+		//Start by removing watch counter on the transaction
 		transactionMonitor.unwatch(xid);
-		if (t_manager.commit(xid)) {
-
-			Object removedObject = t_records.remove(xid);
-			if (removedObject == null) {
-				System.out.println("TID: " + xid
-						+ " has no hashtable entry in customer RM.");
-				return false;// if there was no hash table fho dis transaction
-								// ID
-			}
-
-			System.out
-					.println("Successfully found and removed hash table TID: "
-							+ xid + " from customer RM.");
-
-			// Now unlock all locks related to the xid
-			lockManager.UnlockAll(xid); // --> does not need to be synchronized,
-										// since unlockAll method takes care of
-										// that
+		
+		//First phase of 2PC
+		if(!t_manager.prepare(xid)){
+			abort(xid);
+			return false;
 		}
+		
+		//Try to commit using 2PC
+		if(t_manager.commit(xid)){
+			System.out.println("Successfully committed TID: "+ xid);
+			return true;
+		}
+		
+		System.out.println("Unsuccessfully committed TID: "+ xid);
+		return false;
+	}
+	
+	//Special function specific to the middleware to handle customer commit
+	public boolean middlewareCommit(int xid) throws RemoteException,
+			TransactionAbortedException, InvalidTransactionException {
+
+		Object removedObject = t_records.remove(xid);
+		if (removedObject == null) {
+			System.out.println("TID: " + xid
+					+ " has no hashtable entry in customer RM.");
+			return false;// if there was no hash table fho dis transaction
+							// ID
+		}
+	
+		System.out.println("Successfully found and removed hash table TID: " + xid + " from customer RM.");
+	
+		// Now unlock all locks related to the xid
+		lockManager.UnlockAll(xid); // --> does not need to be synchronized,
+									// since unlockAll method takes care of
+									// that
+		
 		System.out.println("Successfully found and removed hash table TID: "
-				+ xid + " from room/flight/car RMs.");
+				+ xid + " from customer RM.");
+		
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+			out.write(newMaster);
+			//TODO do we write the txn id too?
+			out.close();
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return true;
 	}
 
@@ -869,68 +939,77 @@ public class Middleware implements ResourceManager {
 	 */
 	public void abort(int xid) throws RemoteException,
 			InvalidTransactionException {
+		// Start by removing watch timer on this transaction
+		transactionMonitor.unwatch(xid);
+		
+		// Tell TM to attempt 
+		t_manager.abort(xid);
+	}
+	
+	//Special function specific to the middleware to handle customer abort
+	public void middlewareAbort(int xid) throws RemoteException,
+	InvalidTransactionException {
 		// Call TM abort to abort rms, and to tell this function if customer
 		// also has to abort
-		try {
-			transactionMonitor.unwatch(xid);
-			if (t_manager.abort(xid)) {
+		System.out.println("Attempting to abort transaction " + xid
+				+ " from customer RM.");
 
-				System.out.println("Attempting to abort transaction " + xid
-						+ " from customer RM.");
+		HashMap<String, RMItem> r_table = t_records.remove(xid);
 
-				HashMap<String, RMItem> r_table = t_records.remove(xid);
+		if (r_table == null) {
+			System.out.println("TID: " + xid
+					+ " has no hashtable entry in RM.");
+		} else {
+			System.out.println(r_table.size()
+					+ " entries have been found in the hash table");
 
-				if (r_table == null) {
-					System.out.println("TID: " + xid
-							+ " has no hashtable entry in RM.");
-				} else {
-					System.out.println(r_table.size()
-							+ " entries have been found in the hash table");
+			Set<String> keys = r_table.keySet();
+			RMItem tmp_item;
 
-					Set<String> keys = r_table.keySet();
-					RMItem tmp_item;
+			synchronized (m_itemHT) {
+				// Loop through all elements in the removed hash table
+				// and reset their original value inside the RM's hash
+				// table
+				for (String key : keys) {
+					tmp_item = (RMItem) r_table.get(key);
 
-					synchronized (m_itemHT) {
-						// Loop through all elements in the removed hash table
-						// and reset their original value inside the RM's hash
+					if (tmp_item == null) {
+						System.out
+								.println("We need to remove  element-key: "
+										+ key
+										+ " item from the RM's hash table.");
+						// We need to remove this item from the RM's
+						// hash table
+						m_itemHT.remove(key);
+					} else {
+						System.out
+								.println("We need to add  element-key: "
+										+ key
+										+ " item to the RM's hash table.");
+						// We need to add this item to this RM's hash
 						// table
-						for (String key : keys) {
-							tmp_item = (RMItem) r_table.get(key);
-
-							if (tmp_item == null) {
-								System.out
-										.println("We need to remove  element-key: "
-												+ key
-												+ " item from the RM's hash table.");
-								// We need to remove this item from the RM's
-								// hash table
-								m_itemHT.remove(key);
-							} else {
-								System.out
-										.println("We need to add  element-key: "
-												+ key
-												+ " item to the RM's hash table.");
-								// We need to add this item to this RM's hash
-								// table
-								m_itemHT.put(key, (RMItem) tmp_item);
-							}
-						}
+						m_itemHT.put(key, (RMItem) tmp_item);
 					}
-
-					// Now unlock all locks related to the xid
-					lockManager.UnlockAll(xid);
-
 				}
-
-				System.out.println("Successfully aborted aborted transaction "
-						+ xid + " from customer RM.");
-
 			}
-		} catch (InvalidTransactionException e) {
-			System.out.println(e.getMessage());
+
+			// Now unlock all locks related to the xid
+			lockManager.UnlockAll(xid);
+
 		}
+
+		System.out.println("Successfully aborted aborted transaction "
+				+ xid + " from customer RM.");
 	}
 
+	public boolean firstPhaseACK(int xid) throws RemoteException{
+		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
+		
+		//For now we will only assume that this firstTimeACK always returns true
+		
+		return true;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -938,6 +1017,7 @@ public class Middleware implements ResourceManager {
 	 */
 	public boolean shutdown() throws RemoteException {
 		boolean success = false;
+		
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
 
 		UnicastRemoteObject.unexportObject(this, true);
@@ -967,11 +1047,82 @@ public class Middleware implements ResourceManager {
 
 		return success;
 	}
+	
+	//This method is much more complex than it actually looks like. Before the beginning of times servers have never existed.
+	//Now this new terror arises and a hero can call this function to undo the evils done by these malicious servers. From the 
+	//age of magic to the age of robotics, we have yet to find the very answer for completely destroying and preventing servers
+	//from terrorising little children....Until now, a hero has arised who built this very function, permitting any client from
+	//crashing these evil creatures in a powerful manner. But such power might be too much to handle for the human race, and
+	//there is only one thing we can do... : "Never gonna give you up, never gonna ..."
+	public boolean crash(String which) throws RemoteException
+	{
+		//Tells which RM crashes
+		if(which.equals("customer")){
+			//Tricky piece of shizzle mah dizzling broatha!
+			//Yezzzzz :D!
+			
+			shutdown();
+		}else if(which.equals("flight")){
+			if(!flightRM.shutdown()) return false;
+		}else if(which.equals("car")){
+			if(!carRM.shutdown()) return false;
+		}else if(which.equals("room"))
+		{
+			if(!roomRM.shutdown()) return false;
+		}
+		
+		return true;
+	}
 
 	public void dump() throws RemoteException {
 		m_itemHT.dump();
 		carRM.dump();
 		roomRM.dump();
 		flightRM.dump();
+	}
+
+	@Override
+	public void initialize(String ptr_filename) throws RemoteException {
+		
+		this.ptr_filename = ptr_filename;
+		
+		// Initialize RMs
+		flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+		carRM.initialize(Constants.CAR_FILE_PTR);
+		roomRM.initialize(Constants.ROOM_FILE_PTR);
+
+		try {
+			// Get location of master file
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
+			System.out.println("Serialized master is " + ser_master);
+			in.close();
+		} catch (FileNotFoundException e1) {
+			// No pointer file yet, so create one that points to <customers file 1>.
+			try {
+				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+				out.write(Constants.CUSTOMER_FILE_1);
+				out.close();
+				System.out.println("Created pointer file to point to " + Constants.CUSTOMER_FILE_1);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		try {
+			// Initialize the hashtable with the contents of ser_master
+			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
+			m_itemHT = (RMHashtable) inObj.readObject();
+			inObj.close();
+		} catch (FileNotFoundException e) {
+			// hashtable has never been serialized... so it will be initialized as empty.
+			System.out.println("No existing hashtable, initializing empty.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 }

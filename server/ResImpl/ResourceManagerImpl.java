@@ -9,6 +9,18 @@ import LockManager.LockManager;
 import ResInterface.*;
 
 import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.*;
 
 import java.rmi.registry.Registry;
@@ -24,11 +36,13 @@ public class ResourceManagerImpl implements ResourceManager {
 	protected RMHashtable m_itemHT = new RMHashtable();
 
 	// Create a transaction hashtable to store transaction data --> this will be
-	// used fho the real abort shizzle
 	protected Hashtable<Integer, HashMap<String, RMItem>> t_records = new Hashtable<Integer, HashMap<String, RMItem>>();
 
 	private LockManager lockManager = new LockManager();
 
+	private String ptr_filename;
+	private String ser_master;
+	
 	static String server = "localhost";
 	static int port = 1099;
 
@@ -69,7 +83,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	public ResourceManagerImpl() throws RemoteException {
 	}
-	
+		
 	private void record(int xid, String key, RMItem newItem) {
 		// Get the record for this txn
 		HashMap<String, RMItem> record = t_records.get(xid);
@@ -589,6 +603,29 @@ public class ResourceManagerImpl implements ResourceManager {
 			System.out.println("RM has successfully create a hash map entry for TID: "+xid);
 		}
 	}
+	
+	/**
+	 * Prepares for a commit.
+	 */
+	public boolean prepare(int transactionID) throws RemoteException {
+		// TODO Throw the exceptions
+		
+		//Begin by storing all committed data into a file
+		// Write to the non-master file
+		String writeFile = Constants.getInverse(ser_master);
+		try {
+			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
+			out.writeObject(m_itemHT);
+			out.close();
+			return true;
+		} catch (FileNotFoundException e) {
+			// This should never happen
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -596,8 +633,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
-		// Start by removing the hashtable entry for this transaction ID inside
-		// the transaction record
+		
+		// Remove the hashtable entry for this transaction ID inside the transaction record
 		Object removedObject = t_records.remove(xid);
 		if (removedObject == null)
 			return false;// if there was no hash table fho dis transaction ID
@@ -605,7 +642,20 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Now unlock all locks related to the xid
 		lockManager.UnlockAll(xid); //--> does not need
 		// to be synchronized, since unlockAll method takes care of that
-
+		
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+			out.write(newMaster);
+			//TODO do we write the txn id too?
+			out.close();
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//Commit successful
 		return true;
 	}
 
@@ -659,7 +709,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * 
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
-	public boolean shutdown() throws RemoteException {
+	public boolean shutdown() throws RemoteException {		
 		// Remove self from registry
 		UnicastRemoteObject.unexportObject(this, true);
 		// Unbind self from the registry
@@ -705,8 +755,65 @@ public class ResourceManagerImpl implements ResourceManager {
 		return 0;
 	}
 	
+	public boolean firstPhaseACK(int xid) throws RemoteException{
+		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
+		
+		//For now we will only assume that this firstTimeACK always returns true
+		
+		return true;
+	}
+	
 	public void dump() throws RemoteException {
 		m_itemHT.dump();
+	}
+
+	@Override
+	public void initialize(String ptr_filename) throws RemoteException {
+		this.ptr_filename = ptr_filename;
+		
+		try {
+			// Get location of master file
+			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
+			ser_master = in.readLine();
+			in.close();
+			System.out.println("Going to read from file " + ser_master);
+		} catch (FileNotFoundException e1) {
+			// No pointer file yet, so create one that points to <type> file 1.
+			String file1 = "";
+			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) file1 = Constants.CAR_FILE_1;
+			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
+			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
+			try {
+				System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + file1);
+				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+				out.write(file1);
+				out.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		try {
+			// Initialize the hashtable with the contents of ser_master
+			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
+			m_itemHT = (RMHashtable) inObj.readObject();
+			inObj.close();
+		} catch (FileNotFoundException e) {
+			// hashtable has never been serialized... so it will be initialized as empty.
+			System.out.println("No serialized hashtable, initializing empty.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public boolean crash(String which) throws RemoteException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

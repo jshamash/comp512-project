@@ -1,3 +1,4 @@
+package client;
 import java.rmi.*;
 
 import ResInterface.*;
@@ -7,18 +8,19 @@ import java.rmi.registry.Registry;
 import java.util.*;
 import java.io.*;
 
+import middleware.Middleware;
+
 import transaction.TransactionAbortedException;
 
 public class Client {
 	static String message = "blank";
 	static ResourceManager rm = null;
-
 	public static void main(String args[]) {
 		Client obj = new Client();
-		BufferedReader stdin = new BufferedReader(new InputStreamReader(
-				System.in));
 		String command = "";
 		Vector arguments = new Vector();
+		BufferedReader in = null;
+		
 		int Id, Cid;
 		int flightNum;
 		int flightPrice;
@@ -32,14 +34,19 @@ public class Client {
 
 		String server = "localhost";
 		int port = 1099;
+		String scriptFile = "";
 		if (args.length == 1)
 			server = args[0];
-		if (args.length == 2) {
+		else if (args.length == 2) {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
-		} else if (args.length != 0 && args.length != 2) {
+		} else if (args.length == 3) {
+			server = args[0];
+			port = Integer.parseInt(args[1]);
+			scriptFile = args[2];
+		} else {
 			System.out.println("Usage: java client [rmihost [rmiport]]");
-			System.exit(1);
+			System.exit(-1);
 		}
 
 		try {
@@ -62,18 +69,40 @@ public class Client {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
+		
+		if (scriptFile.equals("")) {
+			in = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("\n\n\tClient Interface");
+			System.out.println("Type \"help\" for list of supported commands");
+		}
+		else {
+			try {
+				in = new BufferedReader(new FileReader(scriptFile));
+				System.out.println("\n\n\tClient Interface");
+				System.out.println("Reading from file " + scriptFile);
+			} catch (FileNotFoundException e) {
+				System.err.println("Could not find script file " + scriptFile);
+				System.exit(-1);
+			}
+		}
 
-		System.out.println("\n\n\tClient Interface");
-		System.out.println("Type \"help\" for list of supported commands");
+		
 		while (true) {
 			System.out.print("\n>");
 			try {
 				// read the next command
-				command = stdin.readLine();
+				command = in.readLine();
+				if (command == null && !scriptFile.isEmpty()) {
+					// Done reading file, now switch to standard in
+					System.out.println("Script completed!");
+					in = new BufferedReader(new InputStreamReader(System.in));
+					command = in.readLine();
+				}
 			} catch (IOException io) {
-				System.out.println("Unable to read from standard in");
-				System.exit(1);
+				System.out.println("Unable to read from input");
+				System.exit(-1);
 			}
+			
 			// remove heading and trailing white space
 			command = command.trim();
 			arguments = obj.parse(command);
@@ -88,8 +117,7 @@ public class Client {
 					obj.listSpecific((String) arguments.elementAt(1));
 				else
 					// wrong use of help command
-					System.out
-							.println("Improper use of help command. Type help or help, <commandname>");
+					System.out.println("Improper use of help command. Type help or help, <commandname>");
 				break;
 
 			case 2: // new flight
@@ -719,6 +747,63 @@ public class Client {
 					e.printStackTrace();
 				}
 				break;
+			
+			case 28:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash customer RM server.");
+					rm.crash("customer");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 29:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash flight RM server.");
+					rm.crash("flight");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 30:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash car RM server.");
+					rm.crash("car");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
+			case 31:
+				if (arguments.size() > 0) {
+					obj.wrongNumber();
+					break;
+				}
+				try {
+					System.out.println("Attempting to crash room RM server.");
+					rm.crash("room");
+				} catch (Exception e) {
+					System.out.println("EXCEPTION:");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+				}
+				break;
 
 			default:
 				System.out
@@ -795,8 +880,16 @@ public class Client {
 			return 26;
 		else if (argument.compareToIgnoreCase("dump") == 0)
 			return 27;
+		else if (argument.compareToIgnoreCase("crashcustomer") == 0)
+			return 28;
+		else if (argument.compareToIgnoreCase("crashflight") == 0)
+			return 29;
+		else if (argument.compareToIgnoreCase("crashcar") == 0)
+			return 30;
+		else if (argument.compareToIgnoreCase("crashroom") == 0)
+			return 31;
 		else
-			return 666;
+			return 666; // LOL
 
 	}
 
@@ -1051,6 +1144,38 @@ public class Client {
 			System.out.println("\tDebugging");
 			System.out.println("\nUsage:");
 			System.out.println("\tdump");
+			break;
+			
+		case 28: // Crash Customer RM server
+			System.out.println("Crash Customer RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling customer related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+			
+		case 29: // Crash Flight RM server
+			System.out.println("Crash Flight RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling flight related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+
+		case 30: // Crash Car RM server
+			System.out.println("Crash Car RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling car related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
+			break;
+			
+		case 31: // Crash Room RM server
+			System.out.println("Crash room RM server");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server handling room related requests");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrashflight,<xid>");
 			break;
 
 		default:

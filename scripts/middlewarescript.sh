@@ -9,6 +9,8 @@
 #	1 - Port number of the server
 #		> RMIRegistry will be set using this number
 
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware
@@ -36,7 +38,7 @@ if [ $# -eq 7 ];then
 	echo "RMI port is $7"
 	PORT=$7
 else
-	echo "Usage: ./middlewarescript <server1-hostname> <server1-port> <server2-hostname> <server2-port> <server3-hostname> <server3-port> <middleware-listenport>"
+	echo "Usage: ./middlewarescript.sh <server1-hostname> <server1-port> <server2-hostname> <server2-port> <server3-hostname> <server3-port> <middleware-listenport>"
 	exit -1
 fi
 
@@ -46,5 +48,5 @@ rmiregistry $PORT &
 echo "Starting middleware..."
 cd ./middleware/
 echo "grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; };" > middleware.policy
-javac *.java LockManager/*.java transaction/*.java
-java -Djava.security.policy=middleware.policy -classpath .:../server Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
+javac middleware/*.java LockManager/*.java transaction/*.java
+java -Djava.security.policy=middleware.policy -classpath .:../server middleware.Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
