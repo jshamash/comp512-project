@@ -9,6 +9,8 @@
 #	1 - Port number of the server
 #		> RMIRegistry will be set using this number
 
+cd ..
+
 VAR=${PWD}
 
 export CLASSPATH=$VAR/server/:$VAR/middleware
@@ -36,7 +38,7 @@ if [ $# -eq 7 ];then
 	echo "RMI port is $7"
 	PORT=$7
 else
-	echo "Usage: ./middlewarescript <server1-hostname> <server1-port> <server2-hostname> <server2-port> <server3-hostname> <server3-port> <middleware-listenport>"
+	echo "Usage: ./middlewarescript.sh <server1-hostname> <server1-port> <server2-hostname> <server2-port> <server3-hostname> <server3-port> <middleware-listenport>"
 	exit -1
 fi
 
