@@ -610,6 +610,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	public boolean prepare(int transactionID) throws RemoteException {
 		// TODO Throw the exceptions
 		
+		//TODO: Start pthread timer for timeout
+		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
 		String writeFile = Constants.getInverse(ser_master);
@@ -637,7 +639,7 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Remove the hashtable entry for this transaction ID inside the transaction record
 		Object removedObject = t_records.remove(xid);
 		if (removedObject == null)
-			return false;// if there was no hash table fho dis transaction ID
+			return false;//TODO: not sure it should return false in this case. 
 
 		// Now unlock all locks related to the xid
 		lockManager.UnlockAll(xid); //--> does not need
@@ -651,6 +653,9 @@ public class ResourceManagerImpl implements ResourceManager {
 			//TODO do we write the txn id too?
 			out.close();
 			ser_master = newMaster;
+			
+			//TODO: write to log file COMMIT(xid) successfull in case of crash
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -701,6 +706,8 @@ public class ResourceManagerImpl implements ResourceManager {
 			lockManager.UnlockAll(xid);
 			// does not need to be synchronized, since unlockAll method takes care of that
 			
+			
+			//TODO: write to log file ABORT(xid) successfull
 		}
 	}
 

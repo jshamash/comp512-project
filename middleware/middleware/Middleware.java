@@ -851,6 +851,8 @@ public class Middleware implements ResourceManager {
 	public boolean prepare(int transactionID) {
 		//TODO throw the exceptions
 		
+		//TODO: timeout should be irrelevant here? Since we are in the same process so messages will get through for sure?
+		
 		// Begin by storing all committed data into a file
 		// Write to the non-master file
 		String writeFile = Constants.getInverse(ser_master);
