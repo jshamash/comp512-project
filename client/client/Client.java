@@ -14,8 +14,7 @@ import transaction.TransactionAbortedException;
 
 public class Client {
 	static String message = "blank";
-	static Middleware rm = null;
-
+	static ResourceManager rm = null;
 	public static void main(String args[]) {
 		Client obj = new Client();
 		BufferedReader stdin = new BufferedReader(new InputStreamReader(
@@ -49,7 +48,7 @@ public class Client {
 			// get a reference to the rmiregistry
 			Registry registry = LocateRegistry.getRegistry(server, port);
 			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (Middleware) registry.lookup("Group1ResourceManager");
+			rm = (ResourceManager) registry.lookup("Group1ResourceManager");
 			if (rm != null) {
 				System.out.println("Successful");
 				System.out.println("Connected to RM");

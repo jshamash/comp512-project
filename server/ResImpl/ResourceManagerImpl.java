@@ -83,9 +83,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	public ResourceManagerImpl() throws RemoteException {
 	}
-	
-	public void init() throws RemoteException{}
-	
+		
 	private void record(int xid, String key, RMItem newItem) {
 		// Get the record for this txn
 		HashMap<String, RMItem> record = t_records.get(xid);
@@ -610,6 +608,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * Prepares for a commit.
 	 */
 	public boolean prepare(int transactionID) throws RemoteException {
+		// TODO Throw the exceptions
+		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
 		String writeFile = Constants.getInverse(ser_master);
@@ -648,6 +648,7 @@ public class ResourceManagerImpl implements ResourceManager {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
 			out.write(newMaster);
+			//TODO do we write the txn id too?
 			out.close();
 			ser_master = newMaster;
 		} catch (IOException e) {
@@ -765,32 +766,6 @@ public class ResourceManagerImpl implements ResourceManager {
 	public void dump() throws RemoteException {
 		m_itemHT.dump();
 	}
-	
-	public void serialize() throws RemoteException {
-//		try {
-//			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
-//			out.writeObject(m_itemHT);
-//			out.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-	}
-	
-	public void deserialize() throws RemoteException {
-//		try {
-//			ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filename)));
-//			m_itemHT = (RMHashtable) in.readObject();
-//			in.close();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		} catch (ClassNotFoundException e) {
-//			e.printStackTrace();
-//		}
-	}
 
 	@Override
 	public void initialize(String ptr_filename) throws RemoteException {
@@ -801,6 +776,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
 			ser_master = in.readLine();
 			in.close();
+			System.out.println("Going to read from file " + ser_master);
 		} catch (FileNotFoundException e1) {
 			// No pointer file yet, so create one that points to <type> file 1.
 			String file1 = "";
@@ -808,6 +784,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
 			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
 			try {
+				System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + file1);
 				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
 				out.write(file1);
 				out.close();
@@ -825,11 +802,18 @@ public class ResourceManagerImpl implements ResourceManager {
 			inObj.close();
 		} catch (FileNotFoundException e) {
 			// hashtable has never been serialized... so it will be initialized as empty.
+			System.out.println("No serialized hashtable, initializing empty.");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public boolean crash(String which) throws RemoteException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

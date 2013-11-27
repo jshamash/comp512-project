@@ -1,4 +1,5 @@
 package middleware;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -127,21 +128,18 @@ public class Middleware implements ResourceManager {
 			// At this point we are a client to the three RM servers.
 			// Now, establish server connection to serve client(s).
 			Middleware obj = new Middleware();
+			
+			// Initialize the RMs
+			//obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			
 			// dynamically generate the stub (client proxy)
-			ResourceManager rm = (ResourceManager) UnicastRemoteObject
-					.exportObject(obj, 0);
+			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
 			// Bind the remote object's stub in the registry
 			registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind("Group1ResourceManager", rm);
 
 			System.err.println("Server ready");
-			
-			// Initialize the RMs
-			flightRM.initialize(Constants.FLIGHT_FILE_PTR);
-			carRM.initialize(Constants.CAR_FILE_PTR);
-			roomRM.initialize(Constants.ROOM_FILE_PTR);
-			obj.initialize(Constants.CUSTOMER_FILE_PTR);
 			
 		} catch (Exception e) {
 			System.err.println("Middleware exception: " + e.toString());
@@ -151,10 +149,6 @@ public class Middleware implements ResourceManager {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
-	}
-
-	public void init() throws RemoteException{
-		
 	}
 	
 	private void record(int xid, String key, RMItem newItem) {
@@ -855,6 +849,8 @@ public class Middleware implements ResourceManager {
 	}
 	
 	public boolean prepare(int transactionID) {
+		//TODO throw the exceptions
+		
 		// Begin by storing all committed data into a file
 		// Write to the non-master file
 		String writeFile = Constants.getInverse(ser_master);
@@ -927,6 +923,7 @@ public class Middleware implements ResourceManager {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
 			out.write(newMaster);
+			//TODO do we write the txn id too?
 			out.close();
 			ser_master = newMaster;
 		} catch (IOException e) {
@@ -1021,9 +1018,6 @@ public class Middleware implements ResourceManager {
 	public boolean shutdown() throws RemoteException {
 		boolean success = false;
 		
-		// TODO this is just for testing right now
-		this.serialize();
-		
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
 
 		UnicastRemoteObject.unexportObject(this, true);
@@ -1088,56 +1082,20 @@ public class Middleware implements ResourceManager {
 	}
 
 	@Override
-	public void serialize() throws RemoteException {
-		flightRM.serialize();
-		roomRM.serialize();
-		carRM.serialize();
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
-			ser_master = in.readLine();
-			in.close();
-			
-			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(ser_master)));
-			out.writeObject(m_itemHT);
-			out.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}		
-	}
-
-	@Override
-	public void deserialize() throws RemoteException {
-		flightRM.deserialize();
-		roomRM.deserialize();
-		carRM.deserialize();
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
-			ser_master = in.readLine();
-			in.close();
-			
-			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
-			m_itemHT = (RMHashtable) inObj.readObject();
-			inObj.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
 	public void initialize(String ptr_filename) throws RemoteException {
+		
 		this.ptr_filename = ptr_filename;
 		
+		// Initialize RMs
+		flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+		carRM.initialize(Constants.CAR_FILE_PTR);
+		roomRM.initialize(Constants.ROOM_FILE_PTR);
 
 		try {
 			// Get location of master file
 			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
 			ser_master = in.readLine();
+			System.out.println("Serialized master is " + ser_master);
 			in.close();
 		} catch (FileNotFoundException e1) {
 			// No pointer file yet, so create one that points to <customers file 1>.
@@ -1145,6 +1103,7 @@ public class Middleware implements ResourceManager {
 				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
 				out.write(Constants.CUSTOMER_FILE_1);
 				out.close();
+				System.out.println("Created pointer file to point to " + Constants.CUSTOMER_FILE_1);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1159,6 +1118,7 @@ public class Middleware implements ResourceManager {
 			inObj.close();
 		} catch (FileNotFoundException e) {
 			// hashtable has never been serialized... so it will be initialized as empty.
+			System.out.println("No existing hashtable, initializing empty.");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
