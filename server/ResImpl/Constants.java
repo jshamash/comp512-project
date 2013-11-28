@@ -17,6 +17,8 @@ public class Constants {
 	public final static String CUSTOMER_FILE_1 = "../resources/cars/customers_1.ser";
 	public final static String CUSTOMER_FILE_2 = "../resources/cars/customers_2.ser";
 	
+	public final static String TRANSACTION_MANAGER_FILE = "../resources/txn-manager/txn-manager.ser";
+	
 	/**
 	 * Given the master's file location, returns the non-master's location.
 	 * @param master

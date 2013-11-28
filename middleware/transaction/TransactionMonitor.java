@@ -1,32 +1,25 @@
 package transaction;
 
-import java.rmi.RemoteException;
-import java.sql.Timestamp;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Date;
-
-import ResInterface.ResourceManager;
 
 public class TransactionMonitor extends Thread {
 
 	private final long ttl = 120000;
 	private Hashtable<Integer, Long> ttl_records = new Hashtable<Integer, Long>();
+	private TransactionManager tm;
 
-	private ResourceManager rm;
-
-	public TransactionMonitor(ResourceManager rm) {
-		this.rm = rm;
+	public TransactionMonitor(TransactionManager tm) {
+		this.tm = tm;
 	}
-
+	
 	public void create(int xid) {
 		ttl_records.put(xid, System.currentTimeMillis());
 	}
 	
-	public void refresh(int xid) throws TransactionAbortedException{
+	public void refresh(int xid) {
 		if(ttl_records.containsKey(xid))
 			ttl_records.put(xid, System.currentTimeMillis());
-		else throw new TransactionAbortedException(xid, "XID does not exists.");
 	}
 
 	public void unwatch(int xid) {
@@ -35,7 +28,6 @@ public class TransactionMonitor extends Thread {
 
 	@Override
 	public synchronized void run() {
-		// TODO Auto-generated method stud
 		super.run();
 
 		while (true) {
@@ -47,12 +39,8 @@ public class TransactionMonitor extends Thread {
 				if (previous != null) {
 					if (now - previous > ttl) {
 						try {
-							rm.abort(xid);
-						} catch (RemoteException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							tm.abort(xid);
 						} catch (InvalidTransactionException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}

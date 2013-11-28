@@ -1,15 +1,16 @@
 package transaction;
+import java.io.Serializable;
 import java.rmi.RemoteException;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
 import middleware.Middleware;
-
 import ResInterface.ResourceManager;
 
 
-public class TransactionManager {
+public class TransactionManager implements Serializable {
+	
+	private static final long serialVersionUID = -7778289931614182560L;
 	
 	//Enums to easily find each RM
 	public final static int CUSTOMER = 	0;
@@ -22,6 +23,7 @@ public class TransactionManager {
 	private Middleware customerRM;
 	private ResourceManager carRM, roomRM, flightRM;
 	protected Hashtable<Integer,LinkedList<Integer>> rm_records = new Hashtable<Integer,LinkedList<Integer>>();
+	private TransactionMonitor t_monitor;
 	
 	
 	//Setting Transaction Manager
@@ -30,6 +32,8 @@ public class TransactionManager {
 		roomRM = room_rm;
 		flightRM = flight_rm;
 		customerRM = cust_rm;
+		t_monitor = new TransactionMonitor(this);
+		t_monitor.start();
 		
 		tid_counter = 0;
 	}
@@ -45,6 +49,8 @@ public class TransactionManager {
 	//If not started, start rm with xid and insert rm_id into list
 	public void enlist(int xid, int rm_id) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
+		t_monitor.refresh(xid);
 		
 		LinkedList<Integer> rm_list = rm_records.get(xid);
 		
@@ -94,6 +100,8 @@ public class TransactionManager {
 		synchronized(rm_records){
 			rm_records.put(new_xid, new LinkedList<Integer>());
 		}
+		
+		t_monitor.create(new_xid);
 		
 		return new_xid;
 	}
@@ -146,7 +154,12 @@ public class TransactionManager {
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
 	public boolean commit(int xid) throws InvalidTransactionException{
+		
+		// THIS IS THE FIRST STEP IN 2PC
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
+		t_monitor.unwatch(xid);
+		
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
@@ -193,6 +206,8 @@ public class TransactionManager {
 	//This function ensures that we do not have to call abort on all of the RMs
 	public void abort(int xid) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		
+		t_monitor.unwatch(xid);
 		
 		System.out.println("Aborting transaction "+xid);
 		
