@@ -1,5 +1,6 @@
 package LockManager;
 
+import java.io.Serializable;
 import java.util.Vector;
 import java.util.Enumeration;
 
@@ -7,9 +8,11 @@ import java.util.Enumeration;
     HashTable class for the Lock Manager.
 */
 
-public class TPHashTable
+public class TPHashTable implements Serializable
 {
-    private static final int HASH_DEPTH = 8;
+	private static final long serialVersionUID = -5659531004744811939L;
+
+	private static final int HASH_DEPTH = 8;
     
     private Vector vect;
     private int iSize;    // size of the hash table

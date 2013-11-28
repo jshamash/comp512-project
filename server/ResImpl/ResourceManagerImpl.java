@@ -21,6 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.rmi.*;
 
 import java.rmi.registry.Registry;
@@ -28,7 +29,11 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import persistence.RMLogger;
+import persistence.RMPointerFile;
+
 import tools.Constants;
+import tools.Serializer;
 import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
 import transaction.InvalidTransactionException;
@@ -88,6 +93,53 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	public ResourceManagerImpl() throws RemoteException {
+	}
+	
+	@Override
+	public void initialize(String ptr_filename) throws RemoteException {
+		this.ptr_filename = ptr_filename;
+		
+		try {
+			// Get location of master file
+			RMPointerFile pointerFile = (RMPointerFile) Serializer.deserialize(ptr_filename);
+			ser_master = pointerFile.getMaster();
+			System.out.println("Going to read from file " + ser_master);
+		} catch (FileNotFoundException e1) {
+			// No pointer file yet, so create one that points to <type> file 1.
+			String file1 = "";
+			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) file1 = Constants.CAR_FILE_1;
+			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
+			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
+
+			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + file1);
+			RMPointerFile newPtr = new RMPointerFile(file1, -1);
+			try {
+				Serializer.serialize(newPtr, ptr_filename);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			// Initialize the RM with the contents of ser_master
+			System.out.println("Initializing RM with contents in " + ser_master);
+			RMLogger log = (RMLogger) Serializer.deserialize(ser_master);
+			m_itemHT = log.getData();
+			t_records = log.getT_records();
+			t_status = log.getT_status();
+			lockManager = log.getLockManager();
+		} catch (FileNotFoundException e) {
+			// hashtable has never been serialized... so it will be initialized as empty.
+			System.out.println("No serialized hashtable, initializing empty.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 		
 	private void record(int xid, String key, RMItem newItem) {
@@ -624,24 +676,13 @@ public class ResourceManagerImpl implements ResourceManager {
 		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
+		
 		TransactionStatus status = t_status.get(xid);
 		if(status == TransactionStatus.ACTIVE || status == TransactionStatus.UNCERTAIN){
-			String writeFile = Constants.getInverse(ser_master);
-			try {
-				ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
-				out.writeObject(m_itemHT);
-				out.close();
-				//Set pthread to uncertain
-				t_status.put(xid, TransactionStatus.UNCERTAIN);
-				
-				return true;
-			} catch (FileNotFoundException e) {
-				// This should never happen
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}else if(status == TransactionStatus.COMMIT){
+			t_status.put(xid, TransactionStatus.UNCERTAIN);
+			writeNonMaster();
+			return true;
+		} else if(status == TransactionStatus.COMMIT){
 			return true;
 		}//Else status == ABORT and we return false
 		
@@ -661,27 +702,18 @@ public class ResourceManagerImpl implements ResourceManager {
 		else if(status == TransactionStatus.UNCERTAIN){
 		
 			// Remove the hashtable entry for this transaction ID inside the transaction record
-			Object removedObject = t_records.remove(xid);
+			t_records.remove(xid);
 			
 			// Now unlock all locks related to the xid
 			lockManager.UnlockAll(xid); //--> does not need
 			// to be synchronized, since unlockAll method takes care of that
 			
-			// Do the ol' switcheroo, indicating which persistent copy is up-to-date
-			String newMaster = Constants.getInverse(ser_master);
-			try {
-				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
-				out.write(newMaster);
-				out.close();
-				ser_master = newMaster;
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			// TODO where do we swap the master pointer?
 			
 			//Change status of xid to COMMIT
 			t_status.put(xid, TransactionStatus.COMMIT);
 			//Commit successful
+			swapMasterPointer(xid);
 			return true;
 		}//else if status is ABORT or ACTIVE return false
 		return false;
@@ -805,52 +837,34 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	@Override
-	public void initialize(String ptr_filename) throws RemoteException {
-		this.ptr_filename = ptr_filename;
-		
-		try {
-			// Get location of master file
-			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
-			ser_master = in.readLine();
-			in.close();
-			System.out.println("Going to read from file " + ser_master);
-		} catch (FileNotFoundException e1) {
-			// No pointer file yet, so create one that points to <type> file 1.
-			String file1 = "";
-			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) file1 = Constants.CAR_FILE_1;
-			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
-			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
-			try {
-				System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + file1);
-				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
-				out.write(file1);
-				out.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		
-		try {
-			// Initialize the hashtable with the contents of ser_master
-			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
-			m_itemHT = (RMHashtable) inObj.readObject();
-			inObj.close();
-		} catch (FileNotFoundException e) {
-			// hashtable has never been serialized... so it will be initialized as empty.
-			System.out.println("No serialized hashtable, initializing empty.");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
 	public boolean crash(String which) throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+	
+	private void swapMasterPointer(int xid) {
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		RMPointerFile ptr = new RMPointerFile(newMaster, xid);
+		System.out.println("Swapping master pointer from " + ser_master + " to " + newMaster);
+		try {
+			Serializer.serialize(ptr, ptr_filename);
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void writeNonMaster() {
+		RMLogger log = new RMLogger(m_itemHT, t_records, t_status, lockManager);
+		String nonMaster = Constants.getInverse(ser_master);
+		try {
+			Serializer.serialize(log, nonMaster);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

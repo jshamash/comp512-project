@@ -25,13 +25,16 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
+import persistence.RMLogger;
+import persistence.RMPointerFile;
+
 import tools.Constants;
+import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
 import tools.Serializer;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
 import transaction.TransactionManager;
-import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResImpl.Car;
@@ -61,6 +64,7 @@ public class Middleware implements ResourceManager {
 	
 	private String ptr_filename;
 	private String ser_master;
+	private Hashtable<Integer, TransactionStatus> t_status;
 
 	static String flightServer, carServer, roomServer;
 	static int flightPort, carPort, roomPort, rmiPort;
@@ -835,25 +839,25 @@ public class Middleware implements ResourceManager {
 		}
 	}
 	
-	public boolean prepare(int transactionID) {
-		//TODO throw the exceptions
+	/**
+	 * Prepares for a commit.
+	 */
+	public boolean prepare(int xid) throws RemoteException {
+		// TODO Throw the exceptions
 		
-		//TODO: timeout should be irrelevant here? Since we are in the same process so messages will get through for sure?
 		
-		// Begin by storing all committed data into a file
+		//Begin by storing all committed data into a file
 		// Write to the non-master file
-		String writeFile = Constants.getInverse(ser_master);
-		try {
-			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
-			out.writeObject(m_itemHT);
-			out.close();
+		
+		TransactionStatus status = t_status.get(xid);
+		if(status == TransactionStatus.ACTIVE || status == TransactionStatus.UNCERTAIN){
+			t_status.put(xid, TransactionStatus.UNCERTAIN);
+			writeNonMaster();
 			return true;
-		} catch (FileNotFoundException e) {
-			// This should never happen
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		} else if(status == TransactionStatus.COMMIT){
+			return true;
+		}//Else status == ABORT and we return false
+		
 		return false;
 	}
 
@@ -887,36 +891,27 @@ public class Middleware implements ResourceManager {
 	//Special function specific to the middleware to handle customer commit
 	public boolean middlewareCommit(int xid) throws RemoteException, InvalidTransactionException {
 
-		Object removedObject = t_records.remove(xid);
-		if (removedObject == null) {
-			System.out.println("TID: " + xid
-					+ " has no hashtable entry in customer RM.");
-			return false;// if there was no hash table fho dis transaction
-							// ID
-		}
-	
-		System.out.println("Successfully found and removed hash table TID: " + xid + " from customer RM.");
-	
-		// Now unlock all locks related to the xid
-		lockManager.UnlockAll(xid); // --> does not need to be synchronized,
-									// since unlockAll method takes care of
-									// that
+		//If transaction is already aborted, return
+		TransactionStatus status = t_status.get(xid);
+		if(status == TransactionStatus.COMMIT) return true;//TODO: maybe we want to return boolean for this function
+		else if(status == TransactionStatus.UNCERTAIN){
 		
-		System.out.println("Successfully found and removed hash table TID: "
-				+ xid + " from customer RM.");
-		
-		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
-		String newMaster = Constants.getInverse(ser_master);
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
-			out.write(newMaster);
-			//TODO do we write the txn id too?
-			out.close();
-			ser_master = newMaster;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return true;
+			// Remove the hashtable entry for this transaction ID inside the transaction record
+			t_records.remove(xid);
+			
+			// Now unlock all locks related to the xid
+			lockManager.UnlockAll(xid); //--> does not need
+			// to be synchronized, since unlockAll method takes care of that
+			
+			// TODO where do we swap the master pointer?
+			
+			//Change status of xid to COMMIT
+			t_status.put(xid, TransactionStatus.COMMIT);
+			//Commit successful
+			swapMasterPointer(xid);
+			return true;
+		}//else if status is ABORT or ACTIVE return false
+		return false;
 	}
 
 	/*
@@ -1071,41 +1066,71 @@ public class Middleware implements ResourceManager {
 		this.ptr_filename = ptr_filename;
 		
 		// Initialize RMs
+		// TODO is this needed?
 		flightRM.initialize(Constants.FLIGHT_FILE_PTR);
 		carRM.initialize(Constants.CAR_FILE_PTR);
 		roomRM.initialize(Constants.ROOM_FILE_PTR);
-
+		
 		try {
 			// Get location of master file
-			BufferedReader in = new BufferedReader(new FileReader(ptr_filename));
-			ser_master = in.readLine();
-			System.out.println("Serialized master is " + ser_master);
-			in.close();
+			RMPointerFile pointerFile = (RMPointerFile) Serializer.deserialize(ptr_filename);
+			ser_master = pointerFile.getMaster();
+			System.out.println("Going to read from file " + ser_master);
 		} catch (FileNotFoundException e1) {
-			// No pointer file yet, so create one that points to <customers file 1>.
+			// No pointer file yet, so create one that points to customers file 1.
+
+			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + Constants.CUSTOMER_FILE_1);
+			RMPointerFile newPtr = new RMPointerFile(Constants.CUSTOMER_FILE_1, -1);
 			try {
-				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
-				out.write(Constants.CUSTOMER_FILE_1);
-				out.close();
-				System.out.println("Created pointer file to point to " + Constants.CUSTOMER_FILE_1);
+				Serializer.serialize(newPtr, ptr_filename);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
 		}
 		
 		try {
-			// Initialize the hashtable with the contents of ser_master
-			ObjectInputStream inObj = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ser_master)));
-			m_itemHT = (RMHashtable) inObj.readObject();
-			inObj.close();
+			// Initialize the RM with the contents of ser_master
+			System.out.println("Initializing RM with contents in " + ser_master);
+			RMLogger log = (RMLogger) Serializer.deserialize(ser_master);
+			m_itemHT = log.getData();
+			t_records = log.getT_records();
+			t_status = log.getT_status();
+			lockManager = log.getLockManager();
 		} catch (FileNotFoundException e) {
 			// hashtable has never been serialized... so it will be initialized as empty.
-			System.out.println("No existing hashtable, initializing empty.");
+			System.out.println("No serialized hashtable, initializing empty.");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void swapMasterPointer(int xid) {
+		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+		String newMaster = Constants.getInverse(ser_master);
+		RMPointerFile ptr = new RMPointerFile(newMaster, xid);
+		System.out.println("Swapping master pointer from " + ser_master + " to " + newMaster);
+		try {
+			Serializer.serialize(ptr, ptr_filename);
+			ser_master = newMaster;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void writeNonMaster() {
+		RMLogger log = new RMLogger(m_itemHT, t_records, t_status, lockManager);
+		String nonMaster = Constants.getInverse(ser_master);
+		try {
+			Serializer.serialize(log, nonMaster);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
