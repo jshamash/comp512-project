@@ -124,8 +124,6 @@ public class TransactionManager implements Serializable {
 	
 	//Prepare functions that takes care of executing the first phase of 2PC, i.e. test if any of the servers have crashed
 	public boolean prepare(int xid){
-		//TODO: IMPLEMENT TIMEOUTS FOR THESE, or should the pthread be created on this function?
-		
 		//Start by setting log information to Start2PC
 		t_status.put(xid, TransactionStatus.UNCERTAIN);
 		
@@ -153,6 +151,7 @@ public class TransactionManager implements Serializable {
 					return false;
 				} catch (TransactionAbortedException | InvalidTransactionException e) {
 					e.printStackTrace();
+					return false;
 				}
 				break;
 			case ROOM:

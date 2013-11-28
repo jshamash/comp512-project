@@ -1,6 +1,7 @@
 package client;
 import java.rmi.*;
 
+import LockManager.DeadlockException;
 import ResInterface.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -9,12 +10,19 @@ import java.util.*;
 import java.io.*;
 
 import middleware.Middleware;
+import middleware.RMReconnect;
 
+import tools.Constants;
+import tools.Constants.RMType;
+import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
+import transaction.TransactionManager;
 
 public class Client {
 	static String message = "blank";
 	static ResourceManager rm = null;
+	private static boolean disconnected;
+	
 	public static void main(String args[]) {
 		Client obj = new Client();
 		String command = "";
@@ -145,6 +153,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -175,7 +185,10 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
-				} catch (Exception e) {
+				} catch(RemoteException e) {
+					reconnect(server, port);
+				}
+				catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
 					e.printStackTrace();
@@ -205,6 +218,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -226,6 +241,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -251,6 +268,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -278,6 +297,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -304,6 +325,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -330,6 +353,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -353,6 +378,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -377,6 +404,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -401,6 +430,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -424,6 +455,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -447,6 +480,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -471,6 +506,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -495,6 +532,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -522,6 +561,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -551,6 +592,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -579,6 +622,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -624,6 +669,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch(RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -655,6 +702,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -671,10 +720,8 @@ public class Client {
 					int xid = rm.start();
 					System.out.println("Started txn with ID: " + xid);
 				} catch (RemoteException e) {
-					System.out.println("EXCEPTION:");
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-				}
+					reconnect(server, port);
+				} 
 				break;
 				
 			case 24: // commit given xid
@@ -690,6 +737,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -709,6 +758,8 @@ public class Client {
 				} catch (TransactionAbortedException a)  {
 					System.out.println("Transaction " + a.getXId() + " was aborted. Cause: ");
 					System.out.println(a.getMessage());
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -741,6 +792,8 @@ public class Client {
 				try {
 					System.out.println("Dumped!");
 					rm.dump();
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -756,6 +809,8 @@ public class Client {
 				try {
 					System.out.println("Attempting to crash customer RM server.");
 					rm.crash("customer");
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -770,6 +825,8 @@ public class Client {
 				try {
 					System.out.println("Attempting to crash flight RM server.");
 					rm.crash("flight");
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -784,6 +841,8 @@ public class Client {
 				try {
 					System.out.println("Attempting to crash car RM server.");
 					rm.crash("car");
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -798,6 +857,8 @@ public class Client {
 				try {
 					System.out.println("Attempting to crash room RM server.");
 					rm.crash("room");
+				} catch (RemoteException e) {
+					reconnect(server, port);
 				} catch (Exception e) {
 					System.out.println("EXCEPTION:");
 					System.out.println(e.getMessage());
@@ -811,6 +872,21 @@ public class Client {
 				break;
 			}// end of switch
 		}// end of while(true)
+	}
+
+	private static void reconnect(String server, int port) {
+		if (disconnected) return;
+		
+		/* restart middleware */
+		System.out.println("Cannot connect to middleware server. Please try again later.");
+		disconnected = true;
+		new RMReconnect(server, port) {
+			@Override
+			public void onComplete() {
+				rm = this.getRM();
+				disconnected = false;
+			}
+		}.start();
 	}
 
 	public Vector parse(String command) {

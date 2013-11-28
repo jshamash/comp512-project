@@ -36,7 +36,6 @@ public abstract class RMReconnect extends Thread {
 
 	@Override
 	public void run() {
-		System.out.println("Trying to reconnect to an RM...");
 		while (crashedRM == null) {
 			// Try to connect
 			try {
@@ -55,7 +54,6 @@ public abstract class RMReconnect extends Thread {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("Connected!");
 		
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
