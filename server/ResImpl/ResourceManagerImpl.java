@@ -653,7 +653,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * 
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
-	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
+	public boolean commit(int xid) throws RemoteException, InvalidTransactionException {
 		
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);

@@ -864,7 +864,7 @@ public class Middleware implements ResourceManager {
 	 */
 	@Override
 	public boolean commit(int xid) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
+			InvalidTransactionException {
 		
 		return t_manager.commit(xid);
 		
@@ -885,8 +885,7 @@ public class Middleware implements ResourceManager {
 	}
 	
 	//Special function specific to the middleware to handle customer commit
-	public boolean middlewareCommit(int xid) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
+	public boolean middlewareCommit(int xid) throws RemoteException, InvalidTransactionException {
 
 		Object removedObject = t_records.remove(xid);
 		if (removedObject == null) {
