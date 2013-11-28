@@ -1,4 +1,4 @@
-package ResImpl;
+package tools;
 
 public class Constants {
 	public final static String CAR_FILE_PTR = "../resources/cars/cars.ptr";

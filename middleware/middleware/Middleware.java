@@ -25,6 +25,9 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
+import tools.Constants;
+import tools.DeepCopy;
+import tools.Serializer;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
 import transaction.TransactionManager;
@@ -32,9 +35,7 @@ import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResImpl.Car;
-import ResImpl.Constants;
 import ResImpl.Customer;
-import ResImpl.DeepCopy;
 import ResImpl.Flight;
 import ResImpl.Hotel;
 import ResImpl.RMHashtable;
@@ -67,9 +68,7 @@ public class Middleware implements ResourceManager {
 	public Middleware() throws RemoteException {
 		try {
 			// Read in serialized txn monitor
-			ObjectInputStream in = new ObjectInputStream(new FileInputStream(Constants.TRANSACTION_MANAGER_FILE));
-			t_manager = (TransactionManager) in.readObject();
-			in.close();
+			t_manager = (TransactionManager) Serializer.deserialize(Constants.TRANSACTION_MANAGER_FILE);
 		} catch (FileNotFoundException e) {
 			// No txn manager has been serialized yet so create a new one.
 			t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
