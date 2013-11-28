@@ -4,6 +4,8 @@ import java.rmi.RemoteException;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
+import persistence.RMReconnect;
+
 import tools.Constants;
 import tools.Constants.TransactionStatus;
 
@@ -249,7 +251,20 @@ public class TransactionManager implements Serializable {
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
 					} catch(RemoteException e) {
 						allCommitAcks =  false;
-						// Restart car
+
+						/* Restart car */
+						
+						// Get these from MW
+						String hostname = "";
+						int port = 0;
+						
+						new RMReconnect("hostname", 123) {
+							@Override
+							public void onComplete() {
+								carRM = this.getRM();
+								// Set middleware's RM
+							}
+						}.run();
 					}
 					break;
 					
@@ -260,7 +275,20 @@ public class TransactionManager implements Serializable {
 						System.out.println("Successfully committed transaction "+xid+" from room RM.");
 					} catch(RemoteException e) {
 						allCommitAcks = false;
-						// Restart room
+						
+						/* Restart room */
+						
+						// Get these from MW
+						String hostname = "";
+						int port = 0;
+						
+						new RMReconnect("hostname", 123) {
+							@Override
+							public void onComplete() {
+								roomRM = this.getRM();
+								// Set middleware's RM
+							}
+						}.run();
 					}
 					break;
 				case FLIGHT:
@@ -270,6 +298,20 @@ public class TransactionManager implements Serializable {
 						System.out.println("Successfully committed transaction "+xid+" from flight RM.");
 					} catch(RemoteException e) {
 						allCommitAcks = false;
+						
+						/* restart flight */
+						
+						// Get these from MW
+						String hostname = "";
+						int port = 0;
+						
+						new RMReconnect("hostname", 123) {
+							@Override
+							public void onComplete() {
+								flightRM = this.getRM();
+								// Set middleware's RM
+							}
+						}.run();
 					}
 					break;
 			}

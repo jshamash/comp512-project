@@ -11,7 +11,7 @@ import ResInterface.ResourceManager;
  * @author Jake
  *
  */
-public class RMReconnect implements Runnable {
+public abstract class RMReconnect implements Runnable {
 
 	private final int SLEEP_TIME = 5000;
 	
@@ -23,6 +23,12 @@ public class RMReconnect implements Runnable {
 		this.hostname = hostname;
 		this.port = port;
 	}
+	
+	public ResourceManager getRM() {
+		return crashedRM;
+	}
+	
+	public abstract void onComplete();
 
 	@Override
 	public void run() {
@@ -43,6 +49,8 @@ public class RMReconnect implements Runnable {
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
 		}
+		
+		this.onComplete();
 	}
 
 }
