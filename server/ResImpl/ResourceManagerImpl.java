@@ -707,9 +707,7 @@ public class ResourceManagerImpl implements ResourceManager {
 		}
 		
 		//Adds transacion to active in our t_status hashtable
-		synchronized(t_status){
-			t_status.put(xid, TransactionStatus.ACTIVE);
-		}
+		t_status.put(xid, TransactionStatus.ACTIVE);
 		
 		//Now create an entry in this transaction records hash table
 		synchronized (t_records){
@@ -825,9 +823,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			t_records.remove(xid);
 			lockManager.UnlockAll(xid);
 			// does not need to be synchronized, since unlockAll method takes care of that
-			synchronized(t_status){
-				t_status.put(xid, TransactionStatus.ABORT);
-			}
+			t_status.put(xid, TransactionStatus.ABORT);
 			
 			//TODO: write to log file ABORT(xid) successfull
 		}
