@@ -31,7 +31,6 @@ public class TransactionMonitor extends Thread {
 		super.run();
 
 		while (true) {
-			// FIXME this creates an infinite loop of aborts
 			Enumeration<Integer> xids = ttl_records.keys();
 			while (xids.hasMoreElements()) {
 				Integer xid = xids.nextElement();

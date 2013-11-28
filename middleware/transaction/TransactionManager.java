@@ -6,6 +6,7 @@ import java.util.LinkedList;
 
 import middleware.Middleware;
 import middleware.RMReconnect;
+import tools.Constants;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
@@ -335,6 +336,12 @@ public class TransactionManager implements Serializable {
 					Middleware.flightRM = this.getRM();
 					TransactionManager.flightRM = this.getRM();
 					crashedRMs.remove(RMType.FLIGHT);
+					try {
+						flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+					} catch (RemoteException e) {
+						// Yo dawg, i heard you like reconnects....
+						reconnect(RMType.FLIGHT);
+					}
 				}
 			}.start();
 			break;
@@ -346,6 +353,11 @@ public class TransactionManager implements Serializable {
 					Middleware.carRM = this.getRM();
 					TransactionManager.carRM = this.getRM();
 					crashedRMs.remove(RMType.CAR);
+					try {
+						carRM.initialize(Constants.CAR_FILE_PTR);
+					} catch (RemoteException e) {
+						reconnect(RMType.CAR);
+					}
 				}
 			}.start();
 			break;
@@ -357,6 +369,11 @@ public class TransactionManager implements Serializable {
 					Middleware.roomRM = this.getRM();
 					TransactionManager.roomRM = this.getRM();
 					crashedRMs.remove(RMType.ROOM);
+					try {
+						roomRM.initialize(Constants.ROOM_FILE_PTR);
+					} catch (RemoteException e) {
+						reconnect(RMType.ROOM);
+					}
 				}
 			}.start();
 			break;

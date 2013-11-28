@@ -132,7 +132,10 @@ public class Middleware implements ResourceManager {
 			Middleware obj = new Middleware();
 			
 			// Initialize the RMs
-			//obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+			carRM.initialize(Constants.CAR_FILE_PTR);
+			roomRM.initialize(Constants.ROOM_FILE_PTR);
 			
 			// dynamically generate the stub (client proxy)
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
