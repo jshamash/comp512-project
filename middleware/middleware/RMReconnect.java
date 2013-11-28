@@ -1,4 +1,4 @@
-package persistence;
+package middleware;
 
 import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
@@ -36,20 +36,26 @@ public abstract class RMReconnect implements Runnable {
 
 	@Override
 	public void run() {
+		System.out.println("Trying to reconnect to an RM...");
 		while (crashedRM == null) {
+			// Try to connect
 			try {
 				// get a reference to the flight rmiregistry
 				Registry registry = LocateRegistry.getRegistry(hostname, port);
 				// get the proxy and the remote reference by rmiregistry lookup
-				crashedRM = (ResourceManager) registry
-						.lookup("Group1ResourceManager");
-				Thread.sleep(RETRY_INTERVAL);
+				crashedRM = (ResourceManager) registry.lookup("Group1ResourceManager");
 			} catch (Exception e) {
 				System.err.println("RMReconnect exception: " + e.toString());
 				e.printStackTrace();
 			}
+			
+			// Sleep
+			try {
+				Thread.sleep(RETRY_INTERVAL);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
-		
 		System.out.println("Connected!");
 		
 		if (System.getSecurityManager() == null) {

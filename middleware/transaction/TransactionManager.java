@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 
 import middleware.Middleware;
-import persistence.RMReconnect;
+import middleware.RMReconnect;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
@@ -17,7 +17,7 @@ public class TransactionManager implements Serializable {
 	
 	private int tid_counter;
 	private Middleware customerRM;
-	private ResourceManager carRM, roomRM, flightRM;
+	public static ResourceManager carRM, roomRM, flightRM;
 	protected Hashtable<Integer,LinkedList<RMType>> rm_records = new Hashtable<Integer,LinkedList<RMType>>();
 	private TransactionMonitor t_monitor;
 	

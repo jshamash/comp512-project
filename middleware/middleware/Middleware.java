@@ -268,14 +268,13 @@ public class Middleware implements ResourceManager {
 				e1.printStackTrace();
 			}
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			reconnect(RMType.FLIGHT);
 		}
 		return false;
 	}
 
 	public boolean addCars(int id, String location, int numCars, int price)
-			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+			throws TransactionAbortedException, InvalidTransactionException {
 		try {
 			t_manager.enlist(id, RMType.CAR);
 			return carRM.addCars(id, location, numCars, price);
@@ -286,13 +285,17 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+			} catch (RemoteException e1) {
+				e1.printStackTrace();
 			}
+		} catch (RemoteException e) {
+			reconnect(RMType.CAR);
 		}
 		return false;
 	}
 
 	public boolean addRooms(int id, String location, int numRooms, int price)
-			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+			throws  TransactionAbortedException, InvalidTransactionException {
 		try {
 			t_manager.enlist(id, RMType.ROOM);
 			return roomRM.addRooms(id, location, numRooms, price);
@@ -303,7 +306,11 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+			} catch (RemoteException e1) {
+				e1.printStackTrace();
 			}
+		} catch (RemoteException e) {
+			reconnect(RMType.FLIGHT);
 		}
 		return false;
 	}
@@ -1133,7 +1140,40 @@ public class Middleware implements ResourceManager {
 		}
 	}
 	
-	private void reconnect() {
-		
+	private void reconnect(RMType type) {
+		switch (type) {
+		case FLIGHT:
+			/* restart flight */
+			new RMReconnect(Middleware.flightServer, Middleware.flightPort) {
+				@Override
+				public void onComplete() {
+					Middleware.flightRM = this.getRM();
+					TransactionManager.flightRM = this.getRM();
+				}
+			}.run();
+			break;
+		case CAR:
+			/* restart car */
+			new RMReconnect(Middleware.carServer, Middleware.carPort) {
+				@Override
+				public void onComplete() {
+					Middleware.carRM = this.getRM();
+					TransactionManager.carRM = this.getRM();
+				}
+			}.run();
+			break;
+		case ROOM:
+			/* Restart room */						
+			new RMReconnect(Middleware.roomServer, Middleware.roomPort) {
+				@Override
+				public void onComplete() {
+					Middleware.roomRM = this.getRM();
+					TransactionManager.roomRM = this.getRM();
+				}
+			}.run();
+			break;
+		default:
+			break;
+		}
 	}
 }

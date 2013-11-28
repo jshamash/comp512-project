@@ -40,7 +40,7 @@ public class Client {
 		else if (args.length == 2) {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
-		} else if (args.length == 3) {
+		} else if (args.length == 3 && !args[2].isEmpty()) {
 			server = args[0];
 			port = Integer.parseInt(args[1]);
 			scriptFile = args[2];
