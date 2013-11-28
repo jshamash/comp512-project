@@ -1,4 +1,4 @@
-package ResImpl;
+package tools;
 
 import java.io.IOException;
 import java.io.ByteArrayInputStream;

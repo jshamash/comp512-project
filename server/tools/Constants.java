@@ -1,4 +1,4 @@
-package ResImpl;
+package tools;
 
 public class Constants {
 	
