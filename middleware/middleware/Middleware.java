@@ -253,7 +253,7 @@ public class Middleware implements ResourceManager {
 		// TODO what happens if we don't get a lock?
 		return item;
 	}
-
+	
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws TransactionAbortedException, InvalidTransactionException {
 		try {
@@ -986,14 +986,6 @@ public class Middleware implements ResourceManager {
 				+ xid + " from customer RM.");
 	}
 
-	public boolean firstPhaseACK(int xid) throws RemoteException{
-		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
-		
-		//For now we will only assume that this firstTimeACK always returns true
-		
-		return true;
-	}
-	
 	/*
 	 * (non-Javadoc)
 	 * 

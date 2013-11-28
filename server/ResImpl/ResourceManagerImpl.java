@@ -27,6 +27,7 @@ import tools.DeepCopy;
 import tools.Serializer;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
+import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResInterface.ResourceManager;
@@ -42,6 +43,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	private Hashtable<Integer, TransactionStatus> t_status= new Hashtable<Integer, TransactionStatus>();
 
 	private LockManager lockManager = new LockManager();
+	private TransactionMonitor t_monitor;
 
 	private String ptr_filename;
 	private String ser_master;
@@ -71,7 +73,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			// Bind the remote object's stub in the registry
 			Registry registry = LocateRegistry.getRegistry(port);
 			registry.rebind("Group1ResourceManager", rm);
-
+			
 			System.err.println("Server ready");
 		} catch (Exception e) {
 			System.err.println("Server exception: " + e.toString());
@@ -91,6 +93,10 @@ public class ResourceManagerImpl implements ResourceManager {
 	public void initialize(String ptr_filename) throws RemoteException {
 		this.ptr_filename = ptr_filename;
 		int xid = -1;
+		
+		System.out.println("Starting t_monitor");
+		t_monitor = new TransactionMonitor(this, true);
+		t_monitor.start();
 		
 		try {
 			// Get location of master file
@@ -137,13 +143,17 @@ public class ResourceManagerImpl implements ResourceManager {
 					e.printStackTrace();
 				}
 			}
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (IOException e){
+		
+		}catch( ClassNotFoundException e){
 			// hashtable has never been serialized... so it will be initialized as empty.
 			System.out.println("No serialized hashtable, initializing empty.");
 		}
 	}
 		
 	private void record(int xid, String key, RMItem newItem) {
+		
+		
 		// Get the record for this txn
 		HashMap<String, RMItem> record = t_records.get(xid);
 		if (record == null) {
@@ -151,6 +161,9 @@ public class ResourceManagerImpl implements ResourceManager {
 			System.err.println("No record for this transaction " + xid);
 			return;
 		}
+		
+		t_monitor.refresh(xid);
+		
 		if (record.containsKey(key)) {
 			System.err.println("Already have a record for this operation "
 					+ key);
@@ -185,6 +198,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		boolean lock = false;
 		RMItem item = null;
 
+		t_monitor.refresh(id);
+		
 		// Request a write lock
 		//TODO May need to replace synchronized block
 		lock = lockManager.Lock(id, key, LockManager.READ);
@@ -202,6 +217,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Writes a data item
 	private void writeData(int id, String key, RMItem value)
 			throws DeadlockException {
+		
+		t_monitor.refresh(id);		
 		boolean lock = false;
 
 		// Request a write lock
@@ -218,6 +235,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Remove the item out of storage
 	protected RMItem removeData(int id, String key) throws DeadlockException {
+		t_monitor.refresh(id);		
 		boolean lock = false;
 		RMItem item = null;
 
@@ -237,6 +255,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// deletes the entire item
 	protected boolean deleteItem(int id, String key) throws DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::deleteItem(" + id + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem) readData(id, key);
 		// Check if there is such an item in the storage
@@ -263,6 +282,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// query the number of available seats/rooms/cars
 	protected int queryNum(int id, String key) throws DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::queryNum(" + id + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem) readData(id, key);
 		int value = 0;
@@ -276,6 +296,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// query the price of an item
 	protected int queryPrice(int id, String key) throws DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::queryPrice(" + id + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem) readData(id, key);
 		int value = 0;
@@ -290,6 +311,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	// reserve an item
 	protected boolean reserveItem(int id, int customerID, String key,
 			String location) throws DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::reserveItem( " + id + ", customer=" + customerID + ", "
 				+ key + ", " + location + " ) called");
 
@@ -329,6 +351,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	// current price
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::addFlight(" + id + ", " + flightNum + ", $"
 				+ flightPrice + ", " + flightSeats + ") called");
 		Flight curObj = (Flight) readData(id, Flight.getKey(flightNum));
@@ -354,7 +377,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException, DeadlockException {
-		return deleteItem(id, Flight.getKey(flightNum));
+		t_monitor.refresh(id);		return deleteItem(id, Flight.getKey(flightNum));
 	}
 
 	// Create a new room location or add rooms to an existing location
@@ -362,6 +385,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	// its current price
 	public boolean addRooms(int id, String location, int count, int price)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);		
 		Trace.info("RM::addRooms(" + id + ", " + location + ", " + count
 				+ ", $" + price + ") called");
 		Hotel curObj = (Hotel) readData(id, Hotel.getKey(location));
@@ -387,6 +411,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Delete rooms from a location
 	public boolean deleteRooms(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return deleteItem(id, Hotel.getKey(location));
 
 	}
@@ -396,6 +421,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// current price
 	public boolean addCars(int id, String location, int count, int price)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("RM::addCars(" + id + ", " + location + ", " + count + ", $"
 				+ price + ") called");
 		Car curObj = (Car) readData(id, Car.getKey(location));
@@ -421,11 +448,13 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Delete cars from a location
 	public boolean deleteCars(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return deleteItem(id, Car.getKey(location));
 	}
 
 	// Returns the number of empty seats on this flight
 	public int queryFlight(int id, int flightNum) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryNum(id, Flight.getKey(flightNum));
 	}
 
@@ -447,26 +476,31 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Returns price of this flight
 	public int queryFlightPrice(int id, int flightNum) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryPrice(id, Flight.getKey(flightNum));
 	}
 
 	// Returns the number of rooms available at a location
 	public int queryRooms(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryNum(id, Hotel.getKey(location));
 	}
 
 	// Returns room price at this location
 	public int queryRoomsPrice(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryPrice(id, Hotel.getKey(location));
 	}
 
 	// Returns the number of cars available at a location
 	public int queryCars(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryNum(id, Car.getKey(location));
 	}
 
 	// Returns price of cars at this location
 	public int queryCarsPrice(int id, String location) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return queryPrice(id, Car.getKey(location));
 	}
 
@@ -477,6 +511,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// reservations.
 	public RMHashtable getCustomerReservations(int id, int customerID)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("RM::getCustomerReservations(" + id + ", " + customerID
 				+ ") called");
 		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -492,6 +528,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// return a bill
 	public String queryCustomerInfo(int id, int customerID)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
 				+ ") called");
 		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -513,6 +551,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// new customer just returns a unique customer identifier
 
 	public int newCustomer(int id) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("INFO: RM::newCustomer(" + id + ") called");
 		// Generate a globally unique ID for the new customer
 		int cid = Integer.parseInt(String.valueOf(id)
@@ -527,6 +567,8 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// I opted to pass in customerID instead. This makes testing easier
 	public boolean newCustomer(int id, int customerID) throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
 				+ ") called");
 		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
@@ -546,6 +588,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Deletes customer from the database.
 	public boolean deleteCustomer(int id, int customerID)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
+		
 		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called");
 		Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 		if (cust == null) {
@@ -601,18 +645,21 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Adds car reservation to this customer.
 	public boolean reserveCar(int id, int customerID, String location)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return reserveItem(id, customerID, Car.getKey(location), location);
 	}
 
 	// Adds room reservation to this customer.
 	public boolean reserveRoom(int id, int customerID, String location)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return reserveItem(id, customerID, Hotel.getKey(location), location);
 	}
 
 	// Adds flight reservation to this customer.
 	public boolean reserveFlight(int id, int customerID, int flightNum)
 			throws RemoteException, DeadlockException {
+		t_monitor.refresh(id);
 		return reserveItem(id, customerID, Flight.getKey(flightNum),
 				String.valueOf(flightNum));
 	}
@@ -620,12 +667,15 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Reserve an itinerary
 	public boolean reserveItinerary(int id, int customer, Vector flightNumbers,
 			String location, boolean Car, boolean Room) throws RemoteException {
+		t_monitor.refresh(id);
 		return false;
 	}
 
 	public boolean removeReservations(int id, String key, int count) throws DeadlockException {
 		ReservableItem item = (ReservableItem) readData(id, key);
 		if (item != null) {
+			t_monitor.refresh(id);
+			
 			Trace.info("RM::removing reservations for " + key
 					+ "which is reserved " + item.getReserved()
 					+ " times and is still available " + item.getCount()
@@ -666,6 +716,10 @@ public class ResourceManagerImpl implements ResourceManager {
 			t_records.put(xid, new HashMap<String, RMItem>());
 			System.out.println("RM has successfully create a hash map entry for TID: "+xid);
 		}
+		
+		System.out.println("Go in monitor syncronized?" );
+		System.out.println("Adds entry for xid "+xid+" in monitor" );
+		t_monitor.create(xid);
 	}
 	
 	/**
@@ -673,7 +727,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	 */
 	public boolean prepare(int xid) throws RemoteException {
 		// TODO Throw the exceptions
-		
+	
 		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
@@ -682,6 +736,7 @@ public class ResourceManagerImpl implements ResourceManager {
 		if(status == TransactionStatus.ACTIVE || status == TransactionStatus.UNCERTAIN){
 			t_status.put(xid, TransactionStatus.UNCERTAIN);
 			writeNonMaster();
+			t_monitor.unwatch(xid);
 			return true;
 		} else if(status == TransactionStatus.COMMIT){
 			return true;
@@ -726,6 +781,10 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
 	public void abort(int xid) throws RemoteException,InvalidTransactionException {
+		System.out.println("Aborting transaction t.xid = "+xid);
+		
+		t_monitor.unwatch(xid);
+		
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);
 		if(status == TransactionStatus.ABORT) return;//TODO: maybe we want to return boolean for this function
@@ -823,14 +882,6 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Returns 0 to tell that there were no ID created if this method is
 		// ever called
 		return 0;
-	}
-	
-	public boolean firstPhaseACK(int xid) throws RemoteException{
-		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
-		
-		//For now we will only assume that this firstTimeACK always returns true
-		
-		return true;
 	}
 	
 	public void dump() throws RemoteException {

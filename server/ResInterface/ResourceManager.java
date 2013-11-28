@@ -160,9 +160,6 @@ public interface ResourceManager extends Remote {
 			InvalidTransactionException;
 
 	public boolean shutdown() throws RemoteException;
-
-	public boolean firstPhaseACK(int xid) throws RemoteException;
-		
 	/**
 	 * Prints the content of this RM's hashtable (for debugging purposes).
 	 */

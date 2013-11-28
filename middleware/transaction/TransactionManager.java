@@ -1,6 +1,9 @@
 package transaction;
 import java.io.Serializable;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
@@ -12,6 +15,48 @@ import tools.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
 
 public class TransactionManager implements Serializable {
+	
+	
+	/*class ConnectThread extends Thread{
+		private int rmiPort;
+		private String hostName;
+		private int xid;//The xid the thread has been created for
+		
+		
+		public ConnectThread(int xid, int rmiPort, String hostName){
+			this.xid = xid;
+			this.rmiPort = rmiPort;
+			this.hostName = hostName;
+		}
+		
+		//Thread tries to reconnect RM that has a connection loss
+		public void run(){
+			while(true){
+				try{
+					Registry registry = LocateRegistry.getRegistry(hostName,
+							rmiPort);
+					// get the proxy and the remote reference by rmiregistry lookup
+					flightRM = (ResourceManager) registry.lookup("Group1ResourceManager");
+					
+					//Successfully connected to the RM
+					//Initialize RM
+					
+					//now tell middleware to reconnect
+					customerRM.RMReconnect();
+				}catch(RemoteException | NotBoundException e){
+					//Connect failed, try to reconnect in 5 seconds
+					try {
+						sleep(5000);
+					} catch (InterruptedException e1) {
+						//Only fail if we destroy thread at this point
+						//could happen so lets put the stackTrace in comment for now
+						//e1.printStackTrace();
+					}
+				}
+			}
+		}
+		
+	}*/
 	
 	private static final long serialVersionUID = -7778289931614182560L;
 	
@@ -34,7 +79,7 @@ public class TransactionManager implements Serializable {
 		roomRM = room_rm;
 		flightRM = flight_rm;
 		customerRM = cust_rm;
-		t_monitor = new TransactionMonitor(this);
+		t_monitor = new TransactionMonitor(customerRM);
 		t_monitor.start();
 		
 		tid_counter = 0;
@@ -264,7 +309,7 @@ public class TransactionManager implements Serializable {
 			}
 		}
 		
-		return true;
+		return allCommitAcks;
 	}
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
