@@ -18,6 +18,7 @@ import java.util.Vector;
 import persistence.RMLogger;
 import persistence.RMPointerFile;
 import tools.Constants;
+import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
 import tools.Serializer;
@@ -38,9 +39,9 @@ import ResInterface.ResourceManager;
 
 public class Middleware implements ResourceManager {
 
-	static ResourceManager flightRM = null;
-	static ResourceManager carRM = null;
-	static ResourceManager roomRM = null;
+	public static ResourceManager flightRM = null;
+	public static ResourceManager carRM = null;
+	public static ResourceManager roomRM = null;
 	
 	protected RMHashtable m_itemHT = new RMHashtable();
 
@@ -55,8 +56,8 @@ public class Middleware implements ResourceManager {
 	private String ser_master;
 	private Hashtable<Integer, TransactionStatus> t_status;
 
-	static String flightServer, carServer, roomServer;
-	static int flightPort, carPort, roomPort, rmiPort;
+	public static String flightServer, carServer, roomServer;
+	public static int flightPort, carPort, roomPort, rmiPort;
 
 	public Middleware() throws RemoteException {
 		try {
@@ -251,10 +252,9 @@ public class Middleware implements ResourceManager {
 	}
 
 	public boolean addFlight(int id, int flightNum, int flightSeats,
-			int flightPrice) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException {
+			int flightPrice) throws TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.FLIGHT);
+			t_manager.enlist(id, RMType.FLIGHT);
 			return flightRM.addFlight(id, flightNum, flightSeats, flightPrice);
 		} catch (DeadlockException e) {
 			try {
@@ -263,7 +263,13 @@ public class Middleware implements ResourceManager {
 						"Deadlock - the transaction was aborted");
 			} catch (InvalidTransactionException e1) {
 				System.err.println("Invalid transaction: " + id);
+			} catch (RemoteException e1) {
+				// Should never happen since it is a local call
+				e1.printStackTrace();
 			}
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return false;
 	}
@@ -271,7 +277,7 @@ public class Middleware implements ResourceManager {
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CAR);
+			t_manager.enlist(id, RMType.CAR);
 			return carRM.addCars(id, location, numCars, price);
 		} catch (DeadlockException e) {
 			try {
@@ -288,7 +294,7 @@ public class Middleware implements ResourceManager {
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.ROOM);
+			t_manager.enlist(id, RMType.ROOM);
 			return roomRM.addRooms(id, location, numRooms, price);
 		} catch (DeadlockException e) {
 			try {
@@ -312,7 +318,7 @@ public class Middleware implements ResourceManager {
 				+ String.valueOf(Math.round(Math.random() * 100 + 1)));
 		Customer cust = new Customer(cid);
 		try {
-			t_manager.enlist(id, TransactionManager.CUSTOMER);
+			t_manager.enlist(id, RMType.CUSTOMER);
 			writeData(id, cust.getKey(), cust);
 		} catch (DeadlockException e) {
 			try {
@@ -335,7 +341,7 @@ public class Middleware implements ResourceManager {
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
 				cust = new Customer(customerID);
-				t_manager.enlist(id, TransactionManager.CUSTOMER);
+				t_manager.enlist(id, RMType.CUSTOMER);
 				writeData(id, cust.getKey(), cust);
 				Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
 						+ ") created a new customer");
@@ -360,7 +366,7 @@ public class Middleware implements ResourceManager {
 	public boolean deleteFlight(int id, int flightNum) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.FLIGHT);
+			t_manager.enlist(id, RMType.FLIGHT);
 			return flightRM.deleteFlight(id, flightNum);
 		} catch (DeadlockException e) {
 			try {
@@ -377,7 +383,7 @@ public class Middleware implements ResourceManager {
 	public boolean deleteCars(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CAR);
+			t_manager.enlist(id, RMType.CAR);
 			return carRM.deleteCars(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -394,7 +400,7 @@ public class Middleware implements ResourceManager {
 	public boolean deleteRooms(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.ROOM);
+			t_manager.enlist(id, RMType.ROOM);
 			return roomRM.deleteRooms(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -434,25 +440,25 @@ public class Middleware implements ResourceManager {
 					String type = key.split("-")[0];
 					System.out.println(type);
 					if (type.equals("car")) {
-						t_manager.enlist(id, TransactionManager.CAR);
+						t_manager.enlist(id, RMType.CAR);
 						carRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else if (type.equals("room")) {
-						t_manager.enlist(id, TransactionManager.ROOM);
+						t_manager.enlist(id, RMType.ROOM);
 						roomRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else if (type.equals("flight")) {
-						t_manager.enlist(id, TransactionManager.FLIGHT);
+						t_manager.enlist(id, RMType.FLIGHT);
 						flightRM.removeReservations(id, key,
 								reserveditem.getCount());
 					} else {
-						t_manager.enlist(id, TransactionManager.CAR);
+						t_manager.enlist(id, RMType.CAR);
 						carRM.removeReservations(id, key,
 								reserveditem.getCount());
-						t_manager.enlist(id, TransactionManager.ROOM);
+						t_manager.enlist(id, RMType.ROOM);
 						roomRM.removeReservations(id, key,
 								reserveditem.getCount());
-						t_manager.enlist(id, TransactionManager.FLIGHT);
+						t_manager.enlist(id, RMType.FLIGHT);
 						flightRM.removeReservations(id, key,
 								reserveditem.getCount());
 					}
@@ -460,7 +466,7 @@ public class Middleware implements ResourceManager {
 				}
 
 				// remove the customer from the storage
-				t_manager.enlist(id, TransactionManager.CUSTOMER);
+				t_manager.enlist(id, RMType.CUSTOMER);
 				removeData(id, cust.getKey());
 
 				Trace.info("RM::deleteCustomer(" + id + ", " + customerID
@@ -482,7 +488,7 @@ public class Middleware implements ResourceManager {
 	public int queryFlight(int id, int flightNumber) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.FLIGHT);
+			t_manager.enlist(id, RMType.FLIGHT);
 			return flightRM.queryFlight(id, flightNumber);
 		} catch (DeadlockException e) {
 			try {
@@ -499,7 +505,7 @@ public class Middleware implements ResourceManager {
 	public int queryCars(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CAR);
+			t_manager.enlist(id, RMType.CAR);
 			return carRM.queryCars(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -516,7 +522,7 @@ public class Middleware implements ResourceManager {
 	public int queryRooms(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.ROOM);
+			t_manager.enlist(id, RMType.ROOM);
 			return roomRM.queryRooms(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -535,7 +541,7 @@ public class Middleware implements ResourceManager {
 		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
 				+ ") called");
 		try {
-			t_manager.enlist(id, TransactionManager.CUSTOMER);
+			t_manager.enlist(id, RMType.CUSTOMER);
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
 				Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
@@ -565,7 +571,7 @@ public class Middleware implements ResourceManager {
 			throws RemoteException, TransactionAbortedException,
 			InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.FLIGHT);
+			t_manager.enlist(id, RMType.FLIGHT);
 			return flightRM.queryFlightPrice(id, flightNumber);
 		} catch (DeadlockException e) {
 			try {
@@ -582,7 +588,7 @@ public class Middleware implements ResourceManager {
 	public int queryCarsPrice(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CAR);
+			t_manager.enlist(id, RMType.CAR);
 			return carRM.queryCarsPrice(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -599,7 +605,7 @@ public class Middleware implements ResourceManager {
 	public int queryRoomsPrice(int id, String location) throws RemoteException,
 			TransactionAbortedException, InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.ROOM);
+			t_manager.enlist(id, RMType.ROOM);
 			return roomRM.queryRoomsPrice(id, location);
 		} catch (DeadlockException e) {
 			try {
@@ -618,7 +624,7 @@ public class Middleware implements ResourceManager {
 			InvalidTransactionException {
 		try {
 			// Read customer object if it exists (and read lock it)
-			t_manager.enlist(id, TransactionManager.CUSTOMER);
+			t_manager.enlist(id, RMType.CUSTOMER);
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
 				Trace.warn("RM::reserveFlight( " + id + ", " + customerID
@@ -626,11 +632,11 @@ public class Middleware implements ResourceManager {
 						+ ")  failed--customer doesn't exist");
 				return false;
 			}
-			t_manager.enlist(id, TransactionManager.FLIGHT);
+			t_manager.enlist(id, RMType.FLIGHT);
 			int price = flightRM.queryFlightPrice(id, flightNumber);
 			if (flightRM.reserveFlight(id, customerID, flightNumber)) {
 				// Item was successfully marked reserved by RM
-				t_manager.enlist(id, TransactionManager.CUSTOMER);
+				t_manager.enlist(id, RMType.CUSTOMER);
 				Customer updatedCust = (Customer) DeepCopy.copy(cust);
 				updatedCust.reserve(Flight.getKey(flightNumber),
 						String.valueOf(flightNumber), price);
@@ -657,7 +663,7 @@ public class Middleware implements ResourceManager {
 			throws RemoteException, TransactionAbortedException,
 			InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CUSTOMER);
+			t_manager.enlist(id, RMType.CUSTOMER);
 			// Read customer object if it exists (and read lock it)
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
@@ -665,7 +671,7 @@ public class Middleware implements ResourceManager {
 						+ location + ")  failed--customer doesn't exist");
 				return false;
 			}
-			t_manager.enlist(id, TransactionManager.CAR);
+			t_manager.enlist(id, RMType.CAR);
 			int price = carRM.queryCarsPrice(id, location);
 			if (carRM.reserveCar(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
@@ -694,7 +700,7 @@ public class Middleware implements ResourceManager {
 			throws RemoteException, TransactionAbortedException,
 			InvalidTransactionException {
 		try {
-			t_manager.enlist(id, TransactionManager.CUSTOMER);
+			t_manager.enlist(id, RMType.CUSTOMER);
 			// Read customer object if it exists (and read lock it)
 			Customer cust = (Customer) readData(id, Customer.getKey(customerID));
 			if (cust == null) {
@@ -702,7 +708,7 @@ public class Middleware implements ResourceManager {
 						+ location + ")  failed--customer doesn't exist");
 				return false;
 			}
-			t_manager.enlist(id, TransactionManager.ROOM);
+			t_manager.enlist(id, RMType.ROOM);
 			int price = roomRM.queryRoomsPrice(id, location);
 			if (roomRM.reserveRoom(id, customerID, location)) {
 				// Item was successfully marked reserved by RM
@@ -1125,5 +1131,9 @@ public class Middleware implements ResourceManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private void reconnect() {
+		
 	}
 }

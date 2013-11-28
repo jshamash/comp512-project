@@ -13,7 +13,7 @@ import ResInterface.ResourceManager;
  */
 public abstract class RMReconnect implements Runnable {
 
-	private final int SLEEP_TIME = 5000;
+	private static final int RETRY_INTERVAL = 5000;
 	
 	private String hostname;
 	private int port;
@@ -22,12 +22,16 @@ public abstract class RMReconnect implements Runnable {
 	public RMReconnect(String hostname, int port) {
 		this.hostname = hostname;
 		this.port = port;
+		
 	}
 	
 	public ResourceManager getRM() {
 		return crashedRM;
 	}
 	
+	/**
+	 * The actions to be taken when a connection is established.
+	 */
 	public abstract void onComplete();
 
 	@Override
@@ -39,12 +43,14 @@ public abstract class RMReconnect implements Runnable {
 				// get the proxy and the remote reference by rmiregistry lookup
 				crashedRM = (ResourceManager) registry
 						.lookup("Group1ResourceManager");
-				Thread.sleep(SLEEP_TIME);
+				Thread.sleep(RETRY_INTERVAL);
 			} catch (Exception e) {
 				System.err.println("RMReconnect exception: " + e.toString());
 				e.printStackTrace();
 			}
 		}
+		
+		System.out.println("Connected!");
 		
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());

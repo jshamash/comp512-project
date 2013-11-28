@@ -4,64 +4,21 @@ import java.rmi.RemoteException;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
-import persistence.RMReconnect;
-
-import tools.Constants;
-import tools.Constants.TransactionStatus;
-
 import middleware.Middleware;
-
+import persistence.RMReconnect;
+import tools.Constants.RMType;
+import tools.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
-
-class PrepareThread {
-    ResourceManager rm;
-    int xid;
-    boolean vr_result;
-    PrepareThread(ResourceManager rm, int xid) {
-       	this.rm = rm;
-       	this.xid = xid;
-       	vr_result = false;
-    }
-        
-    Thread runner = new Thread() {
-    	public synchronized void run() {
-        	try {
-    			vr_result = rm.prepare(xid);
-    		} catch (RemoteException | TransactionAbortedException
-    				| InvalidTransactionException e) {
-    			vr_result = false;
-    		}
-        }
-    };
-    
-    public void go() { 
-    	runner.run();
-    	try {
-			runner.join(Constants.VOTE_REQUEST_TIMEOUT_MILLIS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-    }
-
-    
-}
-
 
 public class TransactionManager implements Serializable {
 	
 	private static final long serialVersionUID = -7778289931614182560L;
 	
-	//Enums to easily find each RM
-	public final static int CUSTOMER = 	0;
-	public final static int CAR = 		1;
-	public final static int ROOM = 		3;
-	public final static int FLIGHT = 	4;
-	
 	
 	private int tid_counter;
 	private Middleware customerRM;
 	private ResourceManager carRM, roomRM, flightRM;
-	protected Hashtable<Integer,LinkedList<Integer>> rm_records = new Hashtable<Integer,LinkedList<Integer>>();
+	protected Hashtable<Integer,LinkedList<RMType>> rm_records = new Hashtable<Integer,LinkedList<RMType>>();
 	private TransactionMonitor t_monitor;
 	
 	//2PC related variables
@@ -89,12 +46,12 @@ public class TransactionManager implements Serializable {
 	//Check if the transaction has started an the RM specified with the rm_id
 	//If not started, do nothing and return
 	//If not started, start rm with xid and insert rm_id into list
-	public void enlist(int xid, int rm_id) throws InvalidTransactionException{
+	public void enlist(int xid, RMType rm_id) throws InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		t_monitor.refresh(xid);
 		
-		LinkedList<Integer> rm_list = rm_records.get(xid);
+		LinkedList<RMType> rm_list = rm_records.get(xid);
 		
 		//If the rm is already in the list, return true, otherwise add to rm_records list
 		if(rm_list.contains(rm_id))
@@ -105,28 +62,28 @@ public class TransactionManager implements Serializable {
 			case CUSTOMER:
 				try{
 					customerRM.start(xid);
-					rm_list.add(CUSTOMER);
+					rm_list.add(RMType.CUSTOMER);
 				}catch(Exception e){}
 				
 				break;
 			case CAR:
 				try{
 					carRM.start(xid);
-					rm_list.add(CAR);
+					rm_list.add(RMType.CAR);
 				}catch(Exception e){}
 				
 				break;
 			case ROOM:
 				try{
 					roomRM.start(xid);
-					rm_list.add(ROOM);
+					rm_list.add(RMType.ROOM);
 				}catch(Exception e){}
 				
 				break;
 			case FLIGHT:
 				try{
 					flightRM.start(xid);
-					rm_list.add(FLIGHT);
+					rm_list.add(RMType.FLIGHT);
 				}catch(Exception e){}
 				
 				break;
@@ -140,7 +97,7 @@ public class TransactionManager implements Serializable {
 		int new_xid = getNewTransactionId();
 		
 		synchronized(rm_records){
-			rm_records.put(new_xid, new LinkedList<Integer>());
+			rm_records.put(new_xid, new LinkedList<RMType>());
 		}	
 		t_status.put(new_xid, TransactionStatus.ACTIVE);
 		
@@ -170,10 +127,10 @@ public class TransactionManager implements Serializable {
 		t_status.put(xid, TransactionStatus.UNCERTAIN);
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
-		LinkedList<Integer> rm_list = rm_records.get(xid);
+		LinkedList<RMType> rm_list = rm_records.get(xid);
 		
 		//Calls prepared function on all RMs related to this transaction
-		for(Integer i : rm_list){
+		for(RMType i : rm_list){
 			switch(i){
 			case CUSTOMER:
 				try{
@@ -225,14 +182,14 @@ public class TransactionManager implements Serializable {
 	//This function ensures that we do not have to call abort on all of the RMs
 	public boolean commit(int xid) throws InvalidTransactionException{
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
-		LinkedList<Integer> rm_list = rm_records.remove(xid);
+		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
 		//TODO:Serialize the TM
 		t_status.put(xid, TransactionStatus.COMMIT);
 		
 		boolean allCommitAcks = true;
 		
-		for(Integer i : rm_list){
+		for(RMType i : rm_list){
 			switch(i){
 				case CUSTOMER:
 					try{
@@ -252,17 +209,12 @@ public class TransactionManager implements Serializable {
 					} catch(RemoteException e) {
 						allCommitAcks =  false;
 
-						/* Restart car */
-						
-						// Get these from MW
-						String hostname = "";
-						int port = 0;
-						
-						new RMReconnect("hostname", 123) {
+						/* Restart car */						
+						new RMReconnect(Middleware.carServer, Middleware.carPort) {
 							@Override
 							public void onComplete() {
 								carRM = this.getRM();
-								// Set middleware's RM
+								Middleware.carRM = this.getRM();
 							}
 						}.run();
 					}
@@ -276,17 +228,12 @@ public class TransactionManager implements Serializable {
 					} catch(RemoteException e) {
 						allCommitAcks = false;
 						
-						/* Restart room */
-						
-						// Get these from MW
-						String hostname = "";
-						int port = 0;
-						
-						new RMReconnect("hostname", 123) {
+						/* Restart room */						
+						new RMReconnect(Middleware.roomServer, Middleware.roomPort) {
 							@Override
 							public void onComplete() {
 								roomRM = this.getRM();
-								// Set middleware's RM
+								Middleware.roomRM = this.getRM();
 							}
 						}.run();
 					}
@@ -300,16 +247,11 @@ public class TransactionManager implements Serializable {
 						allCommitAcks = false;
 						
 						/* restart flight */
-						
-						// Get these from MW
-						String hostname = "";
-						int port = 0;
-						
-						new RMReconnect("hostname", 123) {
+						new RMReconnect(Middleware.flightServer, Middleware.flightPort) {
 							@Override
 							public void onComplete() {
 								flightRM = this.getRM();
-								// Set middleware's RM
+								Middleware.flightRM = this.getRM();
 							}
 						}.run();
 					}
@@ -333,9 +275,9 @@ public class TransactionManager implements Serializable {
 		t_status.put(xid, TransactionStatus.ABORT);
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
-		LinkedList<Integer> rm_list = rm_records.remove(xid);
+		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
-		for(Integer i : rm_list){
+		for(RMType i : rm_list){
 			switch(i){
 				case CUSTOMER:
 					System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");

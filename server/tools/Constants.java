@@ -9,6 +9,10 @@ public class Constants {
 		ACTIVE, UNCERTAIN, COMMIT, ABORT
 	}
 	
+	public enum RMType {
+		CUSTOMER, CAR, ROOM, FLIGHT
+	}
+	
 	public final static String CAR_FILE_PTR = "../resources/cars/cars.ptr";
 	public final static String CAR_FILE_1 = "../resources/cars/cars_1.ser";
 	public final static String CAR_FILE_2 = "../resources/cars/cars_2.ser";
