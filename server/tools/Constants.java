@@ -14,16 +14,16 @@ public class Constants {
 	public final static String CAR_FILE_2 = "../resources/cars/cars_2.ser";
 	
 	public final static String ROOM_FILE_PTR = "../resources/rooms/rooms.ptr";
-	public final static String ROOM_FILE_1 = "../resources/cars/rooms_1.ser";
-	public final static String ROOM_FILE_2 = "../resources/cars/rooms_2.ser";
+	public final static String ROOM_FILE_1 = "../resources/rooms/rooms_1.ser";
+	public final static String ROOM_FILE_2 = "../resources/rooms/rooms_2.ser";
 	
 	public final static String FLIGHT_FILE_PTR = "../resources/flights/flights.ptr";
-	public final static String FLIGHT_FILE_1 = "../resources/cars/flights_1.ser";
-	public final static String FLIGHT_FILE_2 = "../resources/cars/flights_2.ser";
+	public final static String FLIGHT_FILE_1 = "../resources/flights/flights_1.ser";
+	public final static String FLIGHT_FILE_2 = "../resources/flights/flights_2.ser";
 	
 	public final static String CUSTOMER_FILE_PTR = "../resources/customers/customers.ptr";
-	public final static String CUSTOMER_FILE_1 = "../resources/cars/customers_1.ser";
-	public final static String CUSTOMER_FILE_2 = "../resources/cars/customers_2.ser";
+	public final static String CUSTOMER_FILE_1 = "../resources/customers/customers_1.ser";
+	public final static String CUSTOMER_FILE_2 = "../resources/customers/customers_2.ser";
 	
 	public final static String TRANSACTION_MANAGER_FILE = "../resources/txn-manager/txn-manager.ser";
 	

@@ -1,11 +1,14 @@
 package LockManager;
 
+import java.io.Serializable;
 import java.util.BitSet;
 import java.util.Vector;
 
-public class LockManager
+public class LockManager implements Serializable
 {
-    public static final int READ = 0;
+	private static final long serialVersionUID = -5103871887859055472L;
+
+	public static final int READ = 0;
     public static final int WRITE = 1;
     
     private static int TABLE_SIZE = 2039;
