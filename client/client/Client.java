@@ -790,8 +790,8 @@ public class Client {
 					break;
 				}
 				try {
-					System.out.println("Dumped!");
 					rm.dump();
+					System.out.println("Dumped!");
 				} catch (RemoteException e) {
 					reconnect(server, port);
 				} catch (Exception e) {
@@ -875,10 +875,10 @@ public class Client {
 	}
 
 	private static void reconnect(String server, int port) {
+		System.out.println("Cannot connect to middleware server. Please try again later.");
 		if (disconnected) return;
 		
 		/* restart middleware */
-		System.out.println("Cannot connect to middleware server. Please try again later.");
 		disconnected = true;
 		new RMReconnect(server, port) {
 			@Override
