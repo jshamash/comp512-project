@@ -154,8 +154,7 @@ public interface ResourceManager extends Remote {
 
 	public void start(int xid) throws RemoteException;
 
-	public boolean commit(int xid) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionException;
+	public boolean commit(int xid) throws RemoteException, InvalidTransactionException;
 
 	public void abort(int xid) throws RemoteException,
 			InvalidTransactionException;

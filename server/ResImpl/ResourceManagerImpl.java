@@ -133,7 +133,7 @@ public class ResourceManagerImpl implements ResourceManager {
 				try {
 					System.out.println("Performing outstanding commit on txn " + xid);
 					this.commit(xid);
-				} catch (TransactionAbortedException | InvalidTransactionException e) {
+				} catch (InvalidTransactionException e) {
 					e.printStackTrace();
 				}
 			}
@@ -695,7 +695,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * 
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
-	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
+	public boolean commit(int xid) throws RemoteException, InvalidTransactionException {
 		
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);

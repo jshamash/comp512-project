@@ -225,52 +225,51 @@ public class TransactionManager implements Serializable {
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
 		
+		//TODO:Serialize the TM
+		t_status.put(xid, TransactionStatus.COMMIT);
+		
+		boolean allCommitAcks = true;
+		
 		for(Integer i : rm_list){
 			switch(i){
 				case CUSTOMER:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from customer RM.");
-						if(!customerRM.middlewareCommit(xid)) return false;
+						customerRM.middlewareCommit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from customer RM.");
-					} catch(RemoteException e) {
-						return false;
-					} catch (TransactionAbortedException e) {
-						return false;
+					} catch(RemoteException e) {//We should not get any error here
+						System.out.println("ERROR: Remote exception on customer RM commit");
 					}
 					break;
 					
 				case CAR:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from car RM.");
-						if(!carRM.commit(xid)) return false;
+						carRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
-					} catch(RemoteException e){
-						return false;
-					} catch (TransactionAbortedException e) {
-						return false;
+					} catch(RemoteException e) {
+						allCommitAcks =  false;
+						// Restart car
 					}
 					break;
 					
 				case ROOM:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from room RM.");
-						if(!roomRM.commit(xid)) return false;
+						roomRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from room RM.");
 					} catch(RemoteException e) {
-						return false;
-					} catch (TransactionAbortedException e) {
-						return false;
+						allCommitAcks = false;
+						// Restart room
 					}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from flight RM.");
-						if(!flightRM.commit(xid))return false;
+						flightRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from flight RM.");
 					} catch(RemoteException e) {
-						return false;
-					} catch (TransactionAbortedException e) {
-						return false;
+						allCommitAcks = false;
 					}
 					break;
 			}
@@ -287,6 +286,9 @@ public class TransactionManager implements Serializable {
 		t_monitor.unwatch(xid);
 		
 		System.out.println("Aborting transaction "+xid);
+		
+		//TODO: serialize the TM
+		t_status.put(xid, TransactionStatus.ABORT);
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<Integer> rm_list = rm_records.remove(xid);
@@ -325,5 +327,8 @@ public class TransactionManager implements Serializable {
 					break;
 			}
 		}
+		
+		//TODO: serialize the TM
+		t_status.remove(xid);
 	}
 }
