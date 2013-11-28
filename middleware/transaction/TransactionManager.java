@@ -21,6 +21,8 @@ public class TransactionManager implements Serializable {
 	protected Hashtable<Integer,LinkedList<RMType>> rm_records = new Hashtable<Integer,LinkedList<RMType>>();
 	private TransactionMonitor t_monitor;
 	
+	private static LinkedList<RMType> crashedRMs = new LinkedList<RMType>();
+	
 	//2PC related variables
 	private Hashtable<Integer, TransactionStatus> t_status= new Hashtable<Integer, TransactionStatus>();
 	
@@ -184,6 +186,8 @@ public class TransactionManager implements Serializable {
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
+		t_monitor.unwatch(xid);
+		
 		//TODO:Serialize the TM
 		t_status.put(xid, TransactionStatus.COMMIT);
 		
@@ -216,7 +220,7 @@ public class TransactionManager implements Serializable {
 								carRM = this.getRM();
 								Middleware.carRM = this.getRM();
 							}
-						}.run();
+						}.start();
 					}
 					break;
 					
@@ -235,7 +239,7 @@ public class TransactionManager implements Serializable {
 								roomRM = this.getRM();
 								Middleware.roomRM = this.getRM();
 							}
-						}.run();
+						}.start();
 					}
 					break;
 				case FLIGHT:
@@ -253,7 +257,7 @@ public class TransactionManager implements Serializable {
 								flightRM = this.getRM();
 								Middleware.flightRM = this.getRM();
 							}
-						}.run();
+						}.start();
 					}
 					break;
 			}
@@ -314,5 +318,51 @@ public class TransactionManager implements Serializable {
 		
 		//TODO: serialize the TM
 		t_status.remove(xid);
+	}
+	
+	public static void reconnect(RMType type) {
+		if (crashedRMs.contains(type)) return;
+		
+		crashedRMs.add(type);
+		
+		System.out.println("Reconnecting to " + type);
+		switch (type) {
+		case FLIGHT:
+			/* restart flight */
+			new RMReconnect(Middleware.flightServer, Middleware.flightPort) {
+				@Override
+				public void onComplete() {
+					Middleware.flightRM = this.getRM();
+					TransactionManager.flightRM = this.getRM();
+					crashedRMs.remove(RMType.FLIGHT);
+				}
+			}.start();
+			break;
+		case CAR:
+			/* restart car */
+			new RMReconnect(Middleware.carServer, Middleware.carPort) {
+				@Override
+				public void onComplete() {
+					Middleware.carRM = this.getRM();
+					TransactionManager.carRM = this.getRM();
+					crashedRMs.remove(RMType.CAR);
+				}
+			}.start();
+			break;
+		case ROOM:
+			/* Restart room */						
+			new RMReconnect(Middleware.roomServer, Middleware.roomPort) {
+				@Override
+				public void onComplete() {
+					Middleware.roomRM = this.getRM();
+					TransactionManager.roomRM = this.getRM();
+					crashedRMs.remove(RMType.ROOM);
+				}
+			}.start();
+			break;
+		default:
+			break;
+		}
+		System.out.println("Done reconnecting");
 	}
 }

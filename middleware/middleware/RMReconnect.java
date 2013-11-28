@@ -11,9 +11,9 @@ import ResInterface.ResourceManager;
  * @author Jake
  *
  */
-public abstract class RMReconnect implements Runnable {
+public abstract class RMReconnect extends Thread {
 
-	private static final int RETRY_INTERVAL = 5000;
+	private static final int RETRY_INTERVAL = 500;
 	
 	private String hostname;
 	private int port;
@@ -40,13 +40,12 @@ public abstract class RMReconnect implements Runnable {
 		while (crashedRM == null) {
 			// Try to connect
 			try {
-				// get a reference to the flight rmiregistry
+				// get a reference to the rmiregistry
 				Registry registry = LocateRegistry.getRegistry(hostname, port);
 				// get the proxy and the remote reference by rmiregistry lookup
 				crashedRM = (ResourceManager) registry.lookup("Group1ResourceManager");
 			} catch (Exception e) {
-				System.err.println("RMReconnect exception: " + e.toString());
-				e.printStackTrace();
+				// Can't connect yet, keep trying
 			}
 			
 			// Sleep

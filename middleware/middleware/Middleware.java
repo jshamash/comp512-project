@@ -61,7 +61,7 @@ public class Middleware implements ResourceManager {
 
 	public Middleware() throws RemoteException {
 		try {
-			// Read in serialized txn monitor
+			// Read in serialized txn manager
 			t_manager = (TransactionManager) Serializer.deserialize(Constants.TRANSACTION_MANAGER_FILE);
 		} catch (FileNotFoundException e) {
 			// No txn manager has been serialized yet so create a new one.
@@ -268,7 +268,7 @@ public class Middleware implements ResourceManager {
 				e1.printStackTrace();
 			}
 		} catch (RemoteException e) {
-			reconnect(RMType.FLIGHT);
+			TransactionManager.reconnect(RMType.FLIGHT);
 		}
 		return false;
 	}
@@ -289,7 +289,7 @@ public class Middleware implements ResourceManager {
 				e1.printStackTrace();
 			}
 		} catch (RemoteException e) {
-			reconnect(RMType.CAR);
+			TransactionManager.reconnect(RMType.CAR);
 		}
 		return false;
 	}
@@ -310,7 +310,7 @@ public class Middleware implements ResourceManager {
 				e1.printStackTrace();
 			}
 		} catch (RemoteException e) {
-			reconnect(RMType.FLIGHT);
+			TransactionManager.reconnect(RMType.FLIGHT);
 		}
 		return false;
 	}
@@ -1137,43 +1137,6 @@ public class Middleware implements ResourceManager {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
-	}
-	
-	private void reconnect(RMType type) {
-		switch (type) {
-		case FLIGHT:
-			/* restart flight */
-			new RMReconnect(Middleware.flightServer, Middleware.flightPort) {
-				@Override
-				public void onComplete() {
-					Middleware.flightRM = this.getRM();
-					TransactionManager.flightRM = this.getRM();
-				}
-			}.run();
-			break;
-		case CAR:
-			/* restart car */
-			new RMReconnect(Middleware.carServer, Middleware.carPort) {
-				@Override
-				public void onComplete() {
-					Middleware.carRM = this.getRM();
-					TransactionManager.carRM = this.getRM();
-				}
-			}.run();
-			break;
-		case ROOM:
-			/* Restart room */						
-			new RMReconnect(Middleware.roomServer, Middleware.roomPort) {
-				@Override
-				public void onComplete() {
-					Middleware.roomRM = this.getRM();
-					TransactionManager.roomRM = this.getRM();
-				}
-			}.run();
-			break;
-		default:
-			break;
 		}
 	}
 }
