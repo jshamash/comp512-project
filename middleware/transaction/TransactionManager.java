@@ -4,10 +4,11 @@ import java.rmi.RemoteException;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
+import tools.Constants;
+import tools.Constants.TransactionStatus;
+
 import middleware.Middleware;
 
-import ResImpl.Constants;
-import ResImpl.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
 
 class PrepareThread {

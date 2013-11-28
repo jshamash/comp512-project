@@ -6,7 +6,6 @@ package ResImpl;
 
 import LockManager.DeadlockException;
 import LockManager.LockManager;
-import ResImpl.Constants.TransactionStatus;
 import ResInterface.*;
 
 import java.util.*;
@@ -30,6 +29,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
 import tools.Constants;
+import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
