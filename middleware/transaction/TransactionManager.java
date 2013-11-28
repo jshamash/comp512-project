@@ -163,10 +163,6 @@ public class TransactionManager implements Serializable {
 	//Prepare functions that takes care of executing the first phase of 2PC, i.e. test if any of the servers have crashed
 	public boolean prepare(int xid){
 		//TODO: IMPLEMENT TIMEOUTS FOR THESE, or should the pthread be created on this function?
-		PrepareThread carPThread,flightPThread,roomPThread;
-		carPThread = new PrepareThread(carRM, xid);
-		roomPThread = new PrepareThread(roomRM, xid);
-		flightPThread = new PrepareThread(flightRM, xid);
 		
 		//Start by setting log information to Start2PC
 		t_status.put(xid, TransactionStatus.UNCERTAIN);
@@ -179,55 +175,46 @@ public class TransactionManager implements Serializable {
 			switch(i){
 			case CUSTOMER:
 				try{
-					//Since we are in the same process this message should not fail so we dont create
-					//a new thread and immediatle return false if the RM returns a NO VOTE
+					//Since we are in the same process this message should not fail so we don't create
+					//a new thread and immediately return false if the RM returns a NO VOTE
 					if(!customerRM.prepare(xid)) return false;
-				}catch(Exception e){
+				}catch(RemoteException e){
+					// The customer RM is on the same machine so we don't have to worry about crashes.
 					return false;
 				}
 				break;
 			case CAR:
 				try{
 					if(!carRM.prepare(xid)) return false;
-				}catch(Exception e){
+				}catch(RemoteException e){
+					// carRM crashed -- try to reconnect
 					return false;
+				} catch (TransactionAbortedException | InvalidTransactionException e) {
+					e.printStackTrace();
 				}
-				/*carPThread.run();
-				try {
-					carPThread.join(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();					
-				}*/
 				break;
 			case ROOM:
-				try{
+				try {
 					if(!roomRM.prepare(xid)) return false;
-				}catch(Exception e){
+				} catch (RemoteException e1) {
+					// roomRM crashed -- try to reconnect
+					return false;
+				} catch (TransactionAbortedException  | InvalidTransactionException e1) {
 					return false;
 				}
-				/*roomPThread.run();
-				try {
-					roomPThread.join(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();					
-				}*/
 				break;
 			case FLIGHT:
 				try{
 					if(!flightRM.prepare(xid)) return false;
-				}catch(Exception e){
+				}catch(RemoteException e){
+					// flightRM crashed -- try to reconnect
+					return false;
+				} catch (TransactionAbortedException |InvalidTransactionException e) {
 					return false;
 				}
-				/*flightPThread.run();
-				try {
-					flightPThread.join(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();					
-				}*/
 				break;
 			}
 		}
-		
 		
 		return true;
 	}
@@ -245,7 +232,11 @@ public class TransactionManager implements Serializable {
 						System.out.println("Attempting to commit transaction "+ xid+ " from customer RM.");
 						if(!customerRM.middlewareCommit(xid)) return false;
 						System.out.println("Successfully committed transaction "+xid+" from customer RM.");
-					}catch(Exception e){return false;}				
+					} catch(RemoteException e) {
+						return false;
+					} catch (TransactionAbortedException e) {
+						return false;
+					}
 					break;
 					
 				case CAR:
@@ -253,7 +244,11 @@ public class TransactionManager implements Serializable {
 						System.out.println("Attempting to commit transaction "+ xid+ " from car RM.");
 						if(!carRM.commit(xid)) return false;
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
-					}catch(Exception e){return false;}
+					} catch(RemoteException e){
+						return false;
+					} catch (TransactionAbortedException e) {
+						return false;
+					}
 					break;
 					
 				case ROOM:
@@ -261,14 +256,22 @@ public class TransactionManager implements Serializable {
 						System.out.println("Attempting to commit transaction "+ xid+ " from room RM.");
 						if(!roomRM.commit(xid)) return false;
 						System.out.println("Successfully committed transaction "+xid+" from room RM.");
-					}catch(Exception e){return false;}
+					} catch(RemoteException e) {
+						return false;
+					} catch (TransactionAbortedException e) {
+						return false;
+					}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from flight RM.");
 						if(!flightRM.commit(xid))return false;
 						System.out.println("Successfully committed transaction "+xid+" from flight RM.");
-					}catch(Exception e){return false;}
+					} catch(RemoteException e) {
+						return false;
+					} catch (TransactionAbortedException e) {
+						return false;
+					}
 					break;
 			}
 		}
