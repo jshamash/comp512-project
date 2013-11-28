@@ -1,6 +1,14 @@
 package ResImpl;
 
 public class Constants {
+	
+	public final static int VOTE_REQUEST_TIMEOUT_MILLIS = 10000;
+	
+	
+	public enum TransactionStatus {
+		ACTIVE, UNCERTAIN, COMMIT, ABORT
+	}
+	
 	public final static String CAR_FILE_PTR = "../resources/cars/cars.ptr";
 	public final static String CAR_FILE_1 = "../resources/cars/cars_1.ser";
 	public final static String CAR_FILE_2 = "../resources/cars/cars_2.ser";

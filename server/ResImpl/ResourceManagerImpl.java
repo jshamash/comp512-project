@@ -6,6 +6,7 @@ package ResImpl;
 
 import LockManager.DeadlockException;
 import LockManager.LockManager;
+import ResImpl.Constants.TransactionStatus;
 import ResInterface.*;
 
 import java.util.*;
@@ -37,6 +38,9 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Create a transaction hashtable to store transaction data --> this will be
 	protected Hashtable<Integer, HashMap<String, RMItem>> t_records = new Hashtable<Integer, HashMap<String, RMItem>>();
+	
+	//2PC related variables
+	private Hashtable<Integer, TransactionStatus> t_status= new Hashtable<Integer, TransactionStatus>();
 
 	private LockManager lockManager = new LockManager();
 
@@ -597,6 +601,11 @@ public class ResourceManagerImpl implements ResourceManager {
 			return;
 		}
 		
+		//Adds transacion to active in our t_status hashtable
+		synchronized(t_status){
+			t_status.put(xid, TransactionStatus.ACTIVE);
+		}
+		
 		//Now create an entry in this transaction records hash table
 		synchronized (t_records){
 			t_records.put(xid, new HashMap<String, RMItem>());
@@ -607,25 +616,33 @@ public class ResourceManagerImpl implements ResourceManager {
 	/**
 	 * Prepares for a commit.
 	 */
-	public boolean prepare(int transactionID) throws RemoteException {
+	public boolean prepare(int xid) throws RemoteException {
 		// TODO Throw the exceptions
 		
-		//TODO: Start pthread timer for timeout
 		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
-		String writeFile = Constants.getInverse(ser_master);
-		try {
-			ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
-			out.writeObject(m_itemHT);
-			out.close();
+		TransactionStatus status = t_status.get(xid);
+		if(status == TransactionStatus.ACTIVE || status == TransactionStatus.UNCERTAIN){
+			String writeFile = Constants.getInverse(ser_master);
+			try {
+				ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(writeFile)));
+				out.writeObject(m_itemHT);
+				out.close();
+				//Set pthread to uncertain
+				t_status.put(xid, TransactionStatus.UNCERTAIN);
+				
+				return true;
+			} catch (FileNotFoundException e) {
+				// This should never happen
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}else if(status == TransactionStatus.COMMIT){
 			return true;
-		} catch (FileNotFoundException e) {
-			// This should never happen
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		}//Else status == ABORT and we return false
+		
 		return false;
 	}
 
@@ -636,32 +653,36 @@ public class ResourceManagerImpl implements ResourceManager {
 	 */
 	public boolean commit(int xid) throws RemoteException,TransactionAbortedException, InvalidTransactionException {
 		
-		// Remove the hashtable entry for this transaction ID inside the transaction record
-		Object removedObject = t_records.remove(xid);
-		if (removedObject == null)
-			return false;//TODO: not sure it should return false in this case. 
-
-		// Now unlock all locks related to the xid
-		lockManager.UnlockAll(xid); //--> does not need
-		// to be synchronized, since unlockAll method takes care of that
+		//If transaction is already aborted, return
+		TransactionStatus status = t_status.get(xid);
+		if(status == TransactionStatus.COMMIT) return true;//TODO: maybe we want to return boolean for this function
+		else if(status == TransactionStatus.UNCERTAIN){
 		
-		// Do the ol' switcheroo, indicating which persistent copy is up-to-date
-		String newMaster = Constants.getInverse(ser_master);
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
-			out.write(newMaster);
-			//TODO do we write the txn id too?
-			out.close();
-			ser_master = newMaster;
+			// Remove the hashtable entry for this transaction ID inside the transaction record
+			Object removedObject = t_records.remove(xid);
 			
-			//TODO: write to log file COMMIT(xid) successfull in case of crash
+			// Now unlock all locks related to the xid
+			lockManager.UnlockAll(xid); //--> does not need
+			// to be synchronized, since unlockAll method takes care of that
 			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		//Commit successful
-		return true;
+			// Do the ol' switcheroo, indicating which persistent copy is up-to-date
+			String newMaster = Constants.getInverse(ser_master);
+			try {
+				BufferedWriter out = new BufferedWriter(new FileWriter(ptr_filename));
+				out.write(newMaster);
+				out.close();
+				ser_master = newMaster;
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			//Change status of xid to COMMIT
+			t_status.put(xid, TransactionStatus.COMMIT);
+			//Commit successful
+			return true;
+		}//else if status is ABORT or ACTIVE return false
+		return false;
 	}
 
 	/*
@@ -670,9 +691,13 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
 	public void abort(int xid) throws RemoteException,InvalidTransactionException {
+		//If transaction is already aborted, return
+		TransactionStatus status = t_status.get(xid);
+		if(status == TransactionStatus.ABORT) return;//TODO: maybe we want to return boolean for this function
+		
 		// Start by removing the hashtable entry for this transaction ID inside
 		// the transaction records table
-		HashMap<String, RMItem> r_table = t_records.remove(xid);
+		HashMap<String, RMItem> r_table = t_records.get(xid);
 
 		if(r_table == null)	{
 			System.out.println("TID: "+ xid + " has no hashtable entry in RM.");
@@ -703,9 +728,12 @@ public class ResourceManagerImpl implements ResourceManager {
 			}
 			
 			// Now unlock all locks related to the xid
+			t_records.remove(xid);
 			lockManager.UnlockAll(xid);
 			// does not need to be synchronized, since unlockAll method takes care of that
-			
+			synchronized(t_status){
+				t_status.put(xid, TransactionStatus.ABORT);
+			}
 			
 			//TODO: write to log file ABORT(xid) successfull
 		}
