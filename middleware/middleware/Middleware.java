@@ -1065,23 +1065,20 @@ public class Middleware implements ResourceManager {
 	public void initialize(String ptr_filename) throws RemoteException {
 		
 		this.ptr_filename = ptr_filename;
-		
-		// Initialize RMs
-		// TODO is this needed?
-		flightRM.initialize(Constants.FLIGHT_FILE_PTR);
-		carRM.initialize(Constants.CAR_FILE_PTR);
-		roomRM.initialize(Constants.ROOM_FILE_PTR);
+		int xid = -1;
 		
 		try {
 			// Get location of master file
 			RMPointerFile pointerFile = (RMPointerFile) Serializer.deserialize(ptr_filename);
 			ser_master = pointerFile.getMaster();
+			xid = pointerFile.getXid();
 			System.out.println("Going to read from file " + ser_master);
 		} catch (FileNotFoundException e1) {
-			// No pointer file yet, so create one that points to customers file 1.
-
-			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + Constants.CUSTOMER_FILE_1);
-			RMPointerFile newPtr = new RMPointerFile(Constants.CUSTOMER_FILE_1, -1);
+			// No pointer file yet, so create one that points to Customers file 1.
+			ser_master = Constants.CUSTOMER_FILE_1;
+			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + ser_master);
+			RMPointerFile newPtr = new RMPointerFile(ser_master, xid);
+			
 			try {
 				Serializer.serialize(newPtr, ptr_filename);
 			} catch (IOException e) {
@@ -1101,13 +1098,19 @@ public class Middleware implements ResourceManager {
 			t_records = log.getT_records();
 			t_status = log.getT_status();
 			lockManager = log.getLockManager();
-		} catch (FileNotFoundException e) {
+			
+			// We need to do "commit" the last committed xid, i.e. remove it from our records and mark it committed.
+			if (xid > 0) {
+				try {
+					System.out.println("Performing outstanding commit on txn " + xid);
+					this.commit(xid);
+				} catch (TransactionAbortedException | InvalidTransactionException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException | ClassNotFoundException e) {
 			// hashtable has never been serialized... so it will be initialized as empty.
 			System.out.println("No serialized hashtable, initializing empty.");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		}
 	}
 	

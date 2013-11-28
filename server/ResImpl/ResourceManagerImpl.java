@@ -4,40 +4,32 @@
 //
 package ResImpl;
 
-import LockManager.DeadlockException;
-import LockManager.LockManager;
-import ResInterface.*;
-
-import java.util.*;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.rmi.*;
-
-import java.rmi.registry.Registry;
-import java.rmi.registry.LocateRegistry;
+import java.rmi.NotBoundException;
+import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Calendar;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Vector;
 
 import persistence.RMLogger;
 import persistence.RMPointerFile;
-
 import tools.Constants;
-import tools.Serializer;
 import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
+import tools.Serializer;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
+import LockManager.DeadlockException;
+import LockManager.LockManager;
+import ResInterface.ResourceManager;
 
 public class ResourceManagerImpl implements ResourceManager {
 
@@ -98,21 +90,24 @@ public class ResourceManagerImpl implements ResourceManager {
 	@Override
 	public void initialize(String ptr_filename) throws RemoteException {
 		this.ptr_filename = ptr_filename;
+		int xid = -1;
 		
 		try {
 			// Get location of master file
 			RMPointerFile pointerFile = (RMPointerFile) Serializer.deserialize(ptr_filename);
 			ser_master = pointerFile.getMaster();
+			xid = pointerFile.getXid();
 			System.out.println("Going to read from file " + ser_master);
 		} catch (FileNotFoundException e1) {
 			// No pointer file yet, so create one that points to <type> file 1.
-			String file1 = "";
-			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) file1 = Constants.CAR_FILE_1;
-			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) file1 = Constants.ROOM_FILE_1;
-			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) file1 = Constants.FLIGHT_FILE_1;
+			ser_master = "";
+			if (ptr_filename.equals(Constants.CAR_FILE_PTR)) ser_master = Constants.CAR_FILE_1;
+			else if (ptr_filename.equals(Constants.ROOM_FILE_PTR)) ser_master = Constants.ROOM_FILE_1;
+			else if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) ser_master = Constants.FLIGHT_FILE_1;
 
-			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + file1);
-			RMPointerFile newPtr = new RMPointerFile(file1, -1);
+			System.out.println("Creating new ptr file "  + ptr_filename + " to point to " + ser_master);
+			RMPointerFile newPtr = new RMPointerFile(ser_master, xid);
+			
 			try {
 				Serializer.serialize(newPtr, ptr_filename);
 			} catch (IOException e) {
@@ -132,13 +127,19 @@ public class ResourceManagerImpl implements ResourceManager {
 			t_records = log.getT_records();
 			t_status = log.getT_status();
 			lockManager = log.getLockManager();
-		} catch (FileNotFoundException e) {
+			
+			// We need to do "commit" the last committed xid, i.e. remove it from our records and mark it committed.
+			if (xid > 0) {
+				try {
+					System.out.println("Performing outstanding commit on txn " + xid);
+					this.commit(xid);
+				} catch (TransactionAbortedException | InvalidTransactionException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException | ClassNotFoundException e) {
 			// hashtable has never been serialized... so it will be initialized as empty.
 			System.out.println("No serialized hashtable, initializing empty.");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		}
 	}
 		
