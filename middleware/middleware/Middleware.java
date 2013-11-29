@@ -878,8 +878,9 @@ public class Middleware implements ResourceManager {
 	
 	//Special function specific to the middleware to handle customer commit
 	public boolean middlewareCommit(int xid) throws RemoteException, InvalidTransactionException {
-
-		//If transaction is already aborted, return
+		System.out.println("Got OK to commit");
+		
+		//If transaction is already committed, return
 		TransactionStatus status = t_status.get(xid);
 		if(status == TransactionStatus.COMMIT) return true;//TODO: maybe we want to return boolean for this function
 		else if(status == TransactionStatus.UNCERTAIN){

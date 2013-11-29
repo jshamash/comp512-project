@@ -1,4 +1,6 @@
 package transaction;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.Serializable;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -10,56 +12,14 @@ import java.util.LinkedList;
 import middleware.Middleware;
 import middleware.RMReconnect;
 import tools.Constants;
+import tools.Serializer;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import ResInterface.ResourceManager;
 
 public class TransactionManager implements Serializable {
 	
-	
-	/*class ConnectThread extends Thread{
-		private int rmiPort;
-		private String hostName;
-		private int xid;//The xid the thread has been created for
-		
-		
-		public ConnectThread(int xid, int rmiPort, String hostName){
-			this.xid = xid;
-			this.rmiPort = rmiPort;
-			this.hostName = hostName;
-		}
-		
-		//Thread tries to reconnect RM that has a connection loss
-		public void run(){
-			while(true){
-				try{
-					Registry registry = LocateRegistry.getRegistry(hostName,
-							rmiPort);
-					// get the proxy and the remote reference by rmiregistry lookup
-					flightRM = (ResourceManager) registry.lookup("Group1ResourceManager");
-					
-					//Successfully connected to the RM
-					//Initialize RM
-					
-					//now tell middleware to reconnect
-					customerRM.RMReconnect();
-				}catch(RemoteException | NotBoundException e){
-					//Connect failed, try to reconnect in 5 seconds
-					try {
-						sleep(5000);
-					} catch (InterruptedException e1) {
-						//Only fail if we destroy thread at this point
-						//could happen so lets put the stackTrace in comment for now
-						//e1.printStackTrace();
-					}
-				}
-			}
-		}
-		
-	}*/
-	
 	private static final long serialVersionUID = -7778289931614182560L;
-	
 	
 	private int tid_counter;
 	private Middleware customerRM;
@@ -136,6 +96,12 @@ public class TransactionManager implements Serializable {
 				
 				break;
 		}
+		
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
 	}
 	
 	//Start called. We create a new xid for the new transaction, 
@@ -150,6 +116,14 @@ public class TransactionManager implements Serializable {
 		t_status.put(new_xid, TransactionStatus.ACTIVE);
 		
 		t_monitor.create(new_xid);
+		
+		
+		//TODO we may not even need to do this since so far no RMs are implicated in the txn
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
 		
 		return new_xid;
 	}
@@ -175,6 +149,14 @@ public class TransactionManager implements Serializable {
 		//Start by setting log information to Start2PC
 		t_status.put(xid, TransactionStatus.UNCERTAIN);
 		
+		// Log start of 2PC
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
+		
+		//TODO jeremie the comment is wrong is this a mistake?
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.get(xid);
 		
@@ -239,8 +221,14 @@ public class TransactionManager implements Serializable {
 		
 		t_monitor.unwatch(xid);
 		
-		//TODO:Serialize the TM
 		t_status.put(xid, TransactionStatus.COMMIT);
+		
+		// Log commit record
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
 		
 		boolean allCommitAcks = true;
 		
@@ -326,8 +314,13 @@ public class TransactionManager implements Serializable {
 		
 		System.out.println("Aborting transaction "+xid);
 		
-		//TODO: serialize the TM
 		t_status.put(xid, TransactionStatus.ABORT);
+		
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.remove(xid);
@@ -367,8 +360,17 @@ public class TransactionManager implements Serializable {
 			}
 		}
 		
-		//TODO: serialize the TM
 		t_status.remove(xid);
+		
+		try {
+			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.err.println("Couldn't serialize TM!");
+		}
+	}
+	
+	public void recover() {
+		
 	}
 	
 	public static void reconnect(RMType type) {

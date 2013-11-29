@@ -713,6 +713,8 @@ public class ResourceManagerImpl implements ResourceManager {
 		// Just in case:
 		t_monitor.unwatch(xid);
 		
+		System.out.println("Got OK to commit");
+		
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);
 		if(status == TransactionStatus.COMMIT) return true;//TODO: maybe we want to return boolean for this function
