@@ -124,13 +124,17 @@ public class TransactionManager {
 		if(prepare(xid)){
 			System.out.println("Everyone prepared");
 			assert t_status.get(xid) == TransactionStatus.UNCERTAIN;
+
+			//Crash test
+			//customerRM.crash("car");
+
 			if (commit(xid)) {
 				// Everyone committed
 				return true;
 			}
 			else {
 				// Some guy couldn't commit
-				System.err.println("Somebody couldn't commit!!!!! wtf do we do!!!");
+				System.err.println("Somebody could not commit, thread created to tries to reconnect to RM and commit.");
 				return true;
 			}
 			
