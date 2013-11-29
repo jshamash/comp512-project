@@ -148,7 +148,6 @@ public class TransactionManager {
 		// Log start of 2PC
 		serialize();
 		
-		//TODO jeremie the comment is wrong is this a mistake?
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.get(xid);
 		

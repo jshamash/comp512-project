@@ -691,12 +691,6 @@ public class ResourceManagerImpl implements ResourceManager {
 		System.out.println("Preparing");
 		t_monitor.unwatch(xid);
 		
-		
-		// REMOVE ME
-		if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) {
-			System.exit(0);
-		}
-		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
 		
@@ -800,6 +794,19 @@ public class ResourceManagerImpl implements ResourceManager {
 			//TODO: write to log file ABORT(xid) successfull
 		}
 	}
+	
+	public void crash() throws RemoteException {
+		// Remove self from registry
+			UnicastRemoteObject.unexportObject(this, true);
+			// Unbind self from the registry
+			Registry registry = LocateRegistry.getRegistry(port);
+			try {
+				registry.unbind("Group1ResourceManager");
+			} catch (NotBoundException e) {
+				System.out.println("Couldn't unbind self from registry");
+			}
+			System.exit(0);
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -896,6 +903,11 @@ public class ResourceManagerImpl implements ResourceManager {
 	@Override
 	public void recover(HashMap<Integer, TransactionStatus> tm_status) {
 		System.out.println("Recovering RM...");
+		
+		// For each txn t1 in txn_manager that i'm implicated in.
+			// if t1.status == COMMIT && i dont have record for t1
+				// swap master and non-master.
+				// break
 
 		for (Integer xid : new HashSet<Integer>(t_status.keySet())) {
 			System.out.println("Found outstanding transaction xid " + xid + ", status is " + t_status.get(xid));

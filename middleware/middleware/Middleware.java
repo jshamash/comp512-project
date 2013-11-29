@@ -1048,12 +1048,12 @@ public class Middleware implements ResourceManager {
 				}
 			}.start();
 		}else if(which.equals("flight")){
-			if(!flightRM.shutdown()) return false;
+			flightRM.crash();
 		}else if(which.equals("car")){
-			if(!carRM.shutdown()) return false;
+			carRM.crash();
 		}else if(which.equals("room"))
 		{
-			if(!roomRM.shutdown()) return false;
+			roomRM.crash();
 		}
 		else { return false; }
 		
@@ -1119,6 +1119,19 @@ public class Middleware implements ResourceManager {
 			// hashtable has never been serialized... so it will be initialized as empty.
 			System.out.println("No serialized hashtable, initializing empty.");
 		}
+	}
+	
+	public void crash() throws RemoteException {
+		// Remove self from registry
+		UnicastRemoteObject.unexportObject(this, true);
+		// Unbind self from the registry
+		Registry registry = LocateRegistry.getRegistry(rmiPort);
+		try {
+			registry.unbind("Group1ResourceManager");
+		} catch (NotBoundException e) {
+			System.out.println("Couldn't unbind self from registry");
+		}
+		System.exit(0);
 	}
 	
 	private void swapMasterPointer(int xid) {
