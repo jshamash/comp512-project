@@ -124,6 +124,10 @@ public class TransactionManager {
 		if(prepare(xid)){
 			System.out.println("Everyone prepared");
 			assert t_status.get(xid) == TransactionStatus.UNCERTAIN;
+
+			//Crash test
+			//customerRM.crash("car");
+
 			if (commit(xid)) {
 				// Everyone committed
 				return true;
