@@ -8,6 +8,8 @@ if [ $# -eq 1 ]; then
 	echo "file is $FILE"
 fi
 
+rm -f ../resources/*/*
+
 xterm -e ./serverscript.sh 6060 &
 xterm -e ./serverscript.sh 6161 &
 xterm -e ./serverscript.sh 6262 &

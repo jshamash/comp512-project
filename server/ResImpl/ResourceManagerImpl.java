@@ -103,7 +103,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			RMPointerFile pointerFile = (RMPointerFile) Serializer.deserialize(ptr_filename);
 			ser_master = pointerFile.getMaster();
 			xid = pointerFile.getXid();
-			System.out.println("Going to read from file " + ser_master);
+			System.out.println("Found pointer file, going to read from file " + ser_master);
 		} catch (FileNotFoundException e1) {
 			// No pointer file yet, so create one that points to <type> file 1.
 			ser_master = "";

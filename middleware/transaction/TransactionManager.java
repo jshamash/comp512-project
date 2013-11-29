@@ -1,36 +1,30 @@
 package transaction;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Serializable;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import middleware.Middleware;
 import middleware.RMReconnect;
+import persistence.TMLogger;
 import tools.Constants;
-import tools.Serializer;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
+import tools.Serializer;
 import ResInterface.ResourceManager;
 
-public class TransactionManager implements Serializable {
-	
-	private static final long serialVersionUID = -7778289931614182560L;
+public class TransactionManager {
 	
 	private int tid_counter;
 	private Middleware customerRM;
 	public static ResourceManager carRM, roomRM, flightRM;
-	protected Hashtable<Integer,LinkedList<RMType>> rm_records = new Hashtable<Integer,LinkedList<RMType>>();
+	protected HashMap<Integer,LinkedList<RMType>> rm_records = new HashMap<Integer,LinkedList<RMType>>();
 	private TransactionMonitor t_monitor;
 	
 	private static LinkedList<RMType> crashedRMs = new LinkedList<RMType>();
 	
 	//2PC related variables
-	private Hashtable<Integer, TransactionStatus> t_status= new Hashtable<Integer, TransactionStatus>();
+	private HashMap<Integer, TransactionStatus> t_status = new HashMap<Integer, TransactionStatus>();
 	
 	
 	//Setting Transaction Manager
@@ -97,11 +91,7 @@ public class TransactionManager implements Serializable {
 				break;
 		}
 		
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 	}
 	
 	//Start called. We create a new xid for the new transaction, 
@@ -119,11 +109,7 @@ public class TransactionManager implements Serializable {
 		
 		
 		//TODO we may not even need to do this since so far no RMs are implicated in the txn
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 		
 		return new_xid;
 	}
@@ -131,13 +117,23 @@ public class TransactionManager implements Serializable {
 	//Simple 2PC algorithm divided in different classes for cleaner vision of protocol
 	public boolean twoPhaseCommit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		assert t_status.get(xid) == TransactionStatus.ACTIVE;
 		t_monitor.unwatch(xid);
 		
 		//Call prepare function on each of the RMs
 		if(prepare(xid)){
 			System.out.println("Everyone prepared");
-			commit(xid);
-			return true;
+			assert t_status.get(xid) == TransactionStatus.UNCERTAIN;
+			if (commit(xid)) {
+				// Everyone committed
+				return true;
+			}
+			else {
+				// Some guy couldn't commit
+				System.err.println("Somebody couldn't commit!!!!! wtf do we do!!!");
+				return true;
+			}
+			
 		}else{
 			abort(xid);
 			throw new TransactionAbortedException(xid, "Transaction was aborted");
@@ -150,11 +146,7 @@ public class TransactionManager implements Serializable {
 		t_status.put(xid, TransactionStatus.UNCERTAIN);
 		
 		// Log start of 2PC
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 		
 		//TODO jeremie the comment is wrong is this a mistake?
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
@@ -224,11 +216,7 @@ public class TransactionManager implements Serializable {
 		t_status.put(xid, TransactionStatus.COMMIT);
 		
 		// Log commit record
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 		
 		boolean allCommitAcks = true;
 		
@@ -237,7 +225,7 @@ public class TransactionManager implements Serializable {
 				case CUSTOMER:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from customer RM.");
-						customerRM.middlewareCommit(xid);
+						allCommitAcks = allCommitAcks && customerRM.middlewareCommit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from customer RM.");
 					} catch(RemoteException e) {//We should not get any error here
 						System.out.println("ERROR: Remote exception on customer RM commit");
@@ -247,60 +235,39 @@ public class TransactionManager implements Serializable {
 				case CAR:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from car RM.");
-						carRM.commit(xid);
+						allCommitAcks = allCommitAcks && carRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
 					} catch(RemoteException e) {
 						allCommitAcks =  false;
-
-						/* Restart car */						
-						new RMReconnect(Middleware.carServer, Middleware.carPort) {
-							@Override
-							public void onComplete() {
-								carRM = this.getRM();
-								Middleware.carRM = this.getRM();
-							}
-						}.start();
+						reconnect(RMType.CAR);
 					}
 					break;
 					
 				case ROOM:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from room RM.");
-						roomRM.commit(xid);
+						allCommitAcks = allCommitAcks && roomRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from room RM.");
 					} catch(RemoteException e) {
 						allCommitAcks = false;
-						
-						/* Restart room */						
-						new RMReconnect(Middleware.roomServer, Middleware.roomPort) {
-							@Override
-							public void onComplete() {
-								roomRM = this.getRM();
-								Middleware.roomRM = this.getRM();
-							}
-						}.start();
+						reconnect(RMType.ROOM);
 					}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to commit transaction "+ xid+ " from flight RM.");
-						flightRM.commit(xid);
+						allCommitAcks = allCommitAcks && flightRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from flight RM.");
 					} catch(RemoteException e) {
 						allCommitAcks = false;
-						
-						/* restart flight */
-						new RMReconnect(Middleware.flightServer, Middleware.flightPort) {
-							@Override
-							public void onComplete() {
-								flightRM = this.getRM();
-								Middleware.flightRM = this.getRM();
-							}
-						}.start();
+						reconnect(RMType.FLIGHT);
 					}
 					break;
 			}
 		}
+		
+		// If we get here, everyone recceived the OK to commit. We can forget about this txn now.
+		serialize();
 		
 		return allCommitAcks;
 	}
@@ -311,16 +278,9 @@ public class TransactionManager implements Serializable {
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		t_monitor.unwatch(xid);
-		
 		System.out.println("Aborting transaction "+xid);
-		
 		t_status.put(xid, TransactionStatus.ABORT);
-		
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.remove(xid);
@@ -332,14 +292,14 @@ public class TransactionManager implements Serializable {
 					try {
 						customerRM.middlewareAbort(xid);
 					} catch (RemoteException e1) {}
-					System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
+					System.out.println("Successfully aborted transaction "+xid+" from customer RM.");
 					break;
 					
 				case CAR:
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");
 						carRM.abort(xid);
-						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
+						System.out.println("Successfully aborted transaction "+xid+" from car RM.");
 					}catch(Exception e){}
 					break;
 					
@@ -347,30 +307,72 @@ public class TransactionManager implements Serializable {
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from room RM.");
 						roomRM.abort(xid);
-						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
+						System.out.println("Successfully aborted transaction "+xid+" from room RM.");
 					}catch(Exception e){}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from flight RM.");
 						flightRM.abort(xid);
-						System.out.println("Successfully aborted aborted transaction "+xid+" from car RM.");
+						System.out.println("Successfully aborted transaction "+xid+" from flight RM.");
 					}catch(Exception e){}
 					break;
 			}
 		}
 		
 		t_status.remove(xid);
-		
-		try {
-			Serializer.serialize(this, Constants.TRANSACTION_MANAGER_FILE);
-		} catch (Exception e) {
-			System.err.println("Couldn't serialize TM!");
-		}
+		serialize();
 	}
 	
-	public void recover() {
+	public void recover(TMLogger tm) {
+		System.out.println("Recovering TM...");
+		this.rm_records = tm.getRm_records();
+		this.t_status = tm.getT_status();
+		this.tid_counter = tm.getTid_counter();
 		
+		System.out.println("TID counter is " + tid_counter);
+		
+		for (Integer xid : new HashSet<Integer>(t_status.keySet())) {
+			System.out.println("Found outstanding transaction xid " + xid + ", status is " + t_status.get(xid));
+			switch (t_status.get(xid)) {
+			case ACTIVE:
+				try {
+					abort(xid);
+				} catch (InvalidTransactionException e) {
+					// Impossible that this would happen
+					e.printStackTrace();
+				}
+				break;
+			case ABORT:
+				try {
+					abort(xid);
+				} catch (InvalidTransactionException e) {
+					// Impossible that this would happen
+					e.printStackTrace();
+				}
+				break;
+			case COMMIT:
+				try {
+					commit(xid);
+				} catch (InvalidTransactionException
+						| TransactionAbortedException e) {
+					// This can't happen
+					e.printStackTrace();
+				}
+				break;
+			case UNCERTAIN:
+				try {
+					abort(xid);
+				} catch (InvalidTransactionException e) {
+					// Impossible that this would happen
+					e.printStackTrace();
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		System.out.println("Done recovering");
 	}
 	
 	public static void reconnect(RMType type) {
@@ -431,6 +433,16 @@ public class TransactionManager implements Serializable {
 			break;
 		default:
 			break;
+		}
+	}
+	
+	private void serialize() {
+		TMLogger log = new TMLogger(tid_counter, rm_records, t_status);
+		try {
+			Serializer.serialize(log, Constants.TRANSACTION_MANAGER_FILE);
+		} catch (Exception e) {
+			System.out.println("Couldn't serialize TM!");
+			e.printStackTrace();
 		}
 	}
 }

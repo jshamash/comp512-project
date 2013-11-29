@@ -17,6 +17,7 @@ import java.util.Vector;
 
 import persistence.RMLogger;
 import persistence.RMPointerFile;
+import persistence.TMLogger;
 import tools.Constants;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
@@ -60,14 +61,15 @@ public class Middleware implements ResourceManager {
 	public static int flightPort, carPort, roomPort, rmiPort;
 
 	public Middleware() throws RemoteException {
+		t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
 		try {
 			// Read in serialized txn manager
-			t_manager = (TransactionManager) Serializer.deserialize(Constants.TRANSACTION_MANAGER_FILE);
+			TMLogger tm = (TMLogger) Serializer.deserialize(Constants.TRANSACTION_MANAGER_FILE);
+			t_manager.recover(tm);
 			System.out.println("Deserialized TM");
 		} catch (Exception e) {
 			// No txn manager has been serialized yet so create a new one.
 			System.out.println("No existing TM, creating a new one");
-			t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
 		}
 	}
 

@@ -26,7 +26,7 @@ echo "Server is $SERVERNAME"
 echo "Port is $PORT"
 echo "Starting client..."
 cd ./client/
-echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; }; grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; };" > client.policy
+echo "grant codeBase \"file:$VAR/client\" { permission java.security.AllPermission; }; grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; }; grant { permission java.security.AllPermission; };" > client.policy
 javac client/*.java
 if [ $# -eq 3 ];then
 	java -Djava.security.policy=client.policy -classpath .:../server:../middleware client.Client $SERVERNAME $PORT $SRC/$FILE

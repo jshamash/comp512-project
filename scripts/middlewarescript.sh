@@ -47,6 +47,6 @@ rmiregistry $PORT &
 
 echo "Starting middleware..."
 cd ./middleware/
-echo "grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; };" > middleware.policy
-javac middleware/*.java LockManager/*.java transaction/*.java
+echo "grant codeBase \"file:$VAR/middleware\" { permission java.security.AllPermission; }; grant { permission java.security.AllPermission; };" > middleware.policy
+javac */*.java
 java -Djava.security.policy=middleware.policy -classpath .:../server middleware.Middleware $SERVER1NAME $SERVER1PORT $SERVER2NAME $SERVER2PORT $SERVER3NAME $SERVER3PORT $PORT
