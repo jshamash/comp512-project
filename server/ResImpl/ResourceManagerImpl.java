@@ -27,6 +27,7 @@ import tools.DeepCopy;
 import tools.Serializer;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
+import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import ResInterface.ResourceManager;
@@ -43,8 +44,10 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	private LockManager lockManager = new LockManager();
 
-	private String ptr_filename;
-	private String ser_master;
+	private String ptr_filename = "";
+	private String ser_master = "";
+
+	private TransactionMonitor t_monitor;
 	
 	static String server = "localhost";
 	static int port = 1099;
@@ -91,6 +94,9 @@ public class ResourceManagerImpl implements ResourceManager {
 	public void initialize(String ptr_filename) throws RemoteException {
 		this.ptr_filename = ptr_filename;
 		int xid = -1;
+		System.out.println("Starting t_monitor");
+		t_monitor = new TransactionMonitor(this, true);
+		t_monitor.start();
 		
 		try {
 			// Get location of master file
@@ -151,6 +157,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			System.err.println("No record for this transaction " + xid);
 			return;
 		}
+		
 		if (record.containsKey(key)) {
 			System.err.println("Already have a record for this operation "
 					+ key);
@@ -182,11 +189,12 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Reads a data item
 	private RMItem readData(int id, String key) throws DeadlockException {
+		
+		t_monitor.refresh(id);
 		boolean lock = false;
 		RMItem item = null;
-
+		
 		// Request a write lock
-		//TODO May need to replace synchronized block
 		lock = lockManager.Lock(id, key, LockManager.READ);
 
 		if (lock) {
@@ -202,6 +210,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	// Writes a data item
 	private void writeData(int id, String key, RMItem value)
 			throws DeadlockException {
+		
+		t_monitor.refresh(id);
 		boolean lock = false;
 
 		// Request a write lock
@@ -218,6 +228,8 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	// Remove the item out of storage
 	protected RMItem removeData(int id, String key) throws DeadlockException {
+		
+		t_monitor.refresh(id);
 		boolean lock = false;
 		RMItem item = null;
 
@@ -656,16 +668,16 @@ public class ResourceManagerImpl implements ResourceManager {
 			return;
 		}
 		
-		//Adds transacion to active in our t_status hashtable
-		synchronized(t_status){
-			t_status.put(xid, TransactionStatus.ACTIVE);
-		}
+		//Adds transaction to active in our t_status hashtable
+		t_status.put(xid, TransactionStatus.ACTIVE);
 		
 		//Now create an entry in this transaction records hash table
 		synchronized (t_records){
 			t_records.put(xid, new HashMap<String, RMItem>());
 			System.out.println("RM has successfully create a hash map entry for TID: "+xid);
 		}
+		
+		t_monitor.create(xid);
 	}
 	
 	/**
@@ -674,6 +686,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	public boolean prepare(int xid) throws RemoteException {
 		// TODO Throw the exceptions
 		
+		System.out.println("Preparing");
+		t_monitor.unwatch(xid);
 		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
@@ -696,6 +710,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#commit(int)
 	 */
 	public boolean commit(int xid) throws RemoteException, InvalidTransactionException {
+		// Just in case:
+		t_monitor.unwatch(xid);
 		
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);
@@ -726,9 +742,12 @@ public class ResourceManagerImpl implements ResourceManager {
 	 * @see ResInterface.ResourceManager#abort(int)
 	 */
 	public void abort(int xid) throws RemoteException,InvalidTransactionException {
+		System.out.println("Aborting txn " + xid);
 		//If transaction is already aborted, return
 		TransactionStatus status = t_status.get(xid);
 		if(status == TransactionStatus.ABORT) return;//TODO: maybe we want to return boolean for this function
+		
+		t_monitor.unwatch(xid);
 		
 		// Start by removing the hashtable entry for this transaction ID inside
 		// the transaction records table
@@ -766,9 +785,7 @@ public class ResourceManagerImpl implements ResourceManager {
 			t_records.remove(xid);
 			lockManager.UnlockAll(xid);
 			// does not need to be synchronized, since unlockAll method takes care of that
-			synchronized(t_status){
-				t_status.put(xid, TransactionStatus.ABORT);
-			}
+			t_status.put(xid, TransactionStatus.ABORT);
 			
 			//TODO: write to log file ABORT(xid) successfull
 		}
@@ -825,14 +842,6 @@ public class ResourceManagerImpl implements ResourceManager {
 		return 0;
 	}
 	
-	public boolean firstPhaseACK(int xid) throws RemoteException{
-		//TODO: Start Timer --> use of thread to start timer and give 100 seconds to receive commit
-		
-		//For now we will only assume that this firstTimeACK always returns true
-		
-		return true;
-	}
-	
 	public void dump() throws RemoteException {
 		m_itemHT.dump();
 	}
@@ -859,6 +868,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	private void writeNonMaster() {
 		RMLogger log = new RMLogger(m_itemHT, t_records, t_status, lockManager);
 		String nonMaster = Constants.getInverse(ser_master);
+		System.out.println("Logging data to " + nonMaster);
 		try {
 			Serializer.serialize(log, nonMaster);
 		} catch (FileNotFoundException e) {
@@ -866,6 +876,11 @@ public class ResourceManagerImpl implements ResourceManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public boolean isInitialized() throws RemoteException {
+		return !(this.ptr_filename.isEmpty());
 	}
 
 }

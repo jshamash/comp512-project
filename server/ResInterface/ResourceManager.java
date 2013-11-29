@@ -154,7 +154,7 @@ public interface ResourceManager extends Remote {
 
 	public void start(int xid) throws RemoteException;
 
-	public boolean commit(int xid) throws RemoteException, InvalidTransactionException;
+	public boolean commit(int xid) throws RemoteException, InvalidTransactionException, TransactionAbortedException;
 
 	public void abort(int xid) throws RemoteException,
 			InvalidTransactionException;
@@ -166,6 +166,8 @@ public interface ResourceManager extends Remote {
 	public void dump() throws RemoteException;
 	
 	public void initialize(String ptr_filename) throws RemoteException;
+	
+	public boolean isInitialized() throws RemoteException;
 	
 	public boolean prepare(int transactionID) throws RemoteException, TransactionAbortedException, InvalidTransactionException;
 

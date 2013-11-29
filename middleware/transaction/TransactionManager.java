@@ -155,15 +155,18 @@ public class TransactionManager implements Serializable {
 	}
 	
 	//Simple 2PC algorithm divided in different classes for cleaner vision of protocol
-	public void twoPhaseCommit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException{
+	public boolean twoPhaseCommit(int xid) throws RemoteException, TransactionAbortedException, InvalidTransactionException{
 		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		t_monitor.unwatch(xid);
 		
 		//Call prepare function on each of the RMs
 		if(prepare(xid)){
+			System.out.println("Everyone prepared");
 			commit(xid);
+			return true;
 		}else{
 			abort(xid);
+			throw new TransactionAbortedException(xid, "Transaction was aborted");
 		}
 	}
 	
@@ -193,6 +196,7 @@ public class TransactionManager implements Serializable {
 					if(!carRM.prepare(xid)) return false;
 				}catch(RemoteException e){
 					// carRM crashed -- try to reconnect
+					reconnect(RMType.CAR);
 					return false;
 				} catch (TransactionAbortedException | InvalidTransactionException e) {
 					e.printStackTrace();
@@ -204,6 +208,7 @@ public class TransactionManager implements Serializable {
 					if(!roomRM.prepare(xid)) return false;
 				} catch (RemoteException e1) {
 					// roomRM crashed -- try to reconnect
+					reconnect(RMType.ROOM);
 					return false;
 				} catch (TransactionAbortedException  | InvalidTransactionException e1) {
 					return false;
@@ -214,6 +219,7 @@ public class TransactionManager implements Serializable {
 					if(!flightRM.prepare(xid)) return false;
 				}catch(RemoteException e){
 					// flightRM crashed -- try to reconnect
+					reconnect(RMType.FLIGHT);
 					return false;
 				} catch (TransactionAbortedException |InvalidTransactionException e) {
 					return false;
@@ -227,7 +233,7 @@ public class TransactionManager implements Serializable {
 	
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
-	public boolean commit(int xid) throws InvalidTransactionException{
+	public boolean commit(int xid) throws InvalidTransactionException, TransactionAbortedException{
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
@@ -424,6 +430,5 @@ public class TransactionManager implements Serializable {
 		default:
 			break;
 		}
-		System.out.println("Done reconnecting");
 	}
 }

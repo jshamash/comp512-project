@@ -1,22 +1,19 @@
 package client;
-import java.rmi.*;
-
-import LockManager.DeadlockException;
-import ResInterface.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.StringTokenizer;
+import java.util.Vector;
 
-import java.util.*;
-import java.io.*;
-
-import middleware.Middleware;
 import middleware.RMReconnect;
-
-import tools.Constants;
-import tools.Constants.RMType;
-import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
-import transaction.TransactionManager;
+import ResInterface.ResourceManager;
 
 public class Client {
 	static String message = "blank";
@@ -883,6 +880,7 @@ public class Client {
 		new RMReconnect(server, port) {
 			@Override
 			public void onComplete() {
+				System.out.println("Connection established!");
 				rm = this.getRM();
 				disconnected = false;
 			}

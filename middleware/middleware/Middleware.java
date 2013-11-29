@@ -52,8 +52,8 @@ public class Middleware implements ResourceManager {
 	TransactionManager t_manager;
 	LockManager lockManager = new LockManager();
 	
-	private String ptr_filename;
-	private String ser_master;
+	private String ptr_filename = "";
+	private String ser_master = "";
 	private Hashtable<Integer, TransactionStatus> t_status;
 
 	public static String flightServer, carServer, roomServer;
@@ -64,14 +64,10 @@ public class Middleware implements ResourceManager {
 			// Read in serialized txn manager
 			t_manager = (TransactionManager) Serializer.deserialize(Constants.TRANSACTION_MANAGER_FILE);
 			System.out.println("Deserialized TM");
-		} catch (FileNotFoundException e) {
+		} catch (Exception e) {
 			// No txn manager has been serialized yet so create a new one.
 			System.out.println("No existing TM, creating a new one");
 			t_manager = new TransactionManager(this, carRM, roomRM, flightRM);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -134,7 +130,10 @@ public class Middleware implements ResourceManager {
 			Middleware obj = new Middleware();
 			
 			// Initialize the RMs
-			obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			if (!obj.isInitialized()) obj.initialize(Constants.CUSTOMER_FILE_PTR);
+			if (!flightRM.isInitialized()) flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+			if (!carRM.isInitialized()) carRM.initialize(Constants.CAR_FILE_PTR);
+			if (!roomRM.isInitialized()) roomRM.initialize(Constants.ROOM_FILE_PTR);
 			
 			// dynamically generate the stub (client proxy)
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
@@ -872,24 +871,9 @@ public class Middleware implements ResourceManager {
 	 */
 	@Override
 	public boolean commit(int xid) throws RemoteException,
-			InvalidTransactionException {
+			InvalidTransactionException, TransactionAbortedException {
 		
-		return t_manager.commit(xid);
-		
-//		//First phase of 2PC
-//		if(!t_manager.prepare(xid)){
-//			abort(xid);
-//			return false;
-//		}
-//		
-//		//Try to commit using 2PC
-//		if(t_manager.commit(xid)){
-//			System.out.println("Successfully committed TID: "+ xid);
-//			return true;
-//		}
-//		
-//		System.out.println("Unsuccessfully committed TID: "+ xid);
-//		return false;
+		return t_manager.twoPhaseCommit(xid);
 	}
 	
 	//Special function specific to the middleware to handle customer commit
@@ -1080,11 +1064,6 @@ public class Middleware implements ResourceManager {
 				e.printStackTrace();
 			}
 			
-			// This is also a good indicator that this is the middleware's first
-			// time loading, so we need to initialize all the RMs.
-			flightRM.initialize(Constants.FLIGHT_FILE_PTR);
-			carRM.initialize(Constants.CAR_FILE_PTR);
-			roomRM.initialize(Constants.ROOM_FILE_PTR);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		} catch (ClassNotFoundException e) {
@@ -1105,7 +1084,7 @@ public class Middleware implements ResourceManager {
 				try {
 					System.out.println("Performing outstanding commit on txn " + xid);
 					this.commit(xid);
-				} catch (InvalidTransactionException e) {
+				} catch (InvalidTransactionException | TransactionAbortedException e) {
 					e.printStackTrace();
 				}
 			}
@@ -1138,5 +1117,10 @@ public class Middleware implements ResourceManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public boolean isInitialized() throws RemoteException {
+		return !(this.ptr_filename.isEmpty());
 	}
 }
