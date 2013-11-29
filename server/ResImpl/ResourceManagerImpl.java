@@ -181,8 +181,10 @@ public class ResourceManagerImpl implements ResourceManager {
 			}
 			System.out.println("Recording past item " + copy + " - "
 					+ copy.hashCode());
-			System.out.println("The new item is ging to be " + newItem + " - "
-					+ newItem.hashCode());
+			if(newItem != null){
+				System.out.println("The new item is ging to be " + newItem + " - "
+						+ newItem.hashCode());
+			}
 			record.put(key, copy);
 		}
 	}

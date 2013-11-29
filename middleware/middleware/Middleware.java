@@ -56,7 +56,7 @@ public class Middleware implements ResourceManager {
 	
 	private String ptr_filename = "";
 	private String ser_master = "";
-	private Hashtable<Integer, TransactionStatus> t_status;
+	private Hashtable<Integer, TransactionStatus> t_status = new Hashtable<Integer, TransactionStatus>();
 
 	public static String flightServer, carServer, roomServer;
 	public static int flightPort, carPort, roomPort, rmiPort;
@@ -843,6 +843,8 @@ public class Middleware implements ResourceManager {
 					.println("Customer RM has successfully create a hash map entry for TID: "
 							+ xid);
 		}
+
+		t_status.put(xid, TransactionStatus.ACTIVE);
 	}
 	
 	/**
@@ -924,6 +926,8 @@ public class Middleware implements ResourceManager {
 				+ " from customer RM.");
 
 		HashMap<String, RMItem> r_table = t_records.remove(xid);
+
+		t_status.put(xid, TransactionStatus.ABORT);
 
 		if (r_table == null) {
 			System.out.println("TID: " + xid
