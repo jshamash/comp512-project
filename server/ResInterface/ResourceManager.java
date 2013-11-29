@@ -2,10 +2,12 @@ package ResInterface;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.Vector;
 
 import LockManager.DeadlockException;
 
+import tools.Constants.TransactionStatus;
 import transaction.InvalidTransactionException;
 import transaction.TransactionAbortedException;
 
@@ -172,5 +174,7 @@ public interface ResourceManager extends Remote {
 	public boolean prepare(int transactionID) throws RemoteException, TransactionAbortedException, InvalidTransactionException;
 
 	public boolean crash(String which) throws RemoteException;
+	
+	public void recover(HashMap<Integer, TransactionStatus> tm_status) throws RemoteException;
 
 }

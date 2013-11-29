@@ -24,7 +24,7 @@ public class TransactionManager {
 	private static LinkedList<RMType> crashedRMs = new LinkedList<RMType>();
 	
 	//2PC related variables
-	private HashMap<Integer, TransactionStatus> t_status = new HashMap<Integer, TransactionStatus>();
+	private static HashMap<Integer, TransactionStatus> t_status = new HashMap<Integer, TransactionStatus>();
 	
 	
 	//Setting Transaction Manager
@@ -327,7 +327,7 @@ public class TransactionManager {
 	public void recover(TMLogger tm) {
 		System.out.println("Recovering TM...");
 		this.rm_records = tm.getRm_records();
-		this.t_status = tm.getT_status();
+		TransactionManager.t_status = tm.getT_status();
 		this.tid_counter = tm.getTid_counter();
 		
 		System.out.println("TID counter is " + tid_counter);
@@ -373,6 +373,8 @@ public class TransactionManager {
 			}
 		}
 		System.out.println("Done recovering");
+		
+		customerRM.recover(t_status);
 	}
 	
 	public static void reconnect(RMType type) {
@@ -392,6 +394,7 @@ public class TransactionManager {
 					crashedRMs.remove(RMType.FLIGHT);
 					try {
 						flightRM.initialize(Constants.FLIGHT_FILE_PTR);
+						flightRM.recover(t_status);
 					} catch (RemoteException e) {
 						// Yo dawg, i heard you like reconnects....
 						reconnect(RMType.FLIGHT);
@@ -409,6 +412,7 @@ public class TransactionManager {
 					crashedRMs.remove(RMType.CAR);
 					try {
 						carRM.initialize(Constants.CAR_FILE_PTR);
+						carRM.recover(t_status);
 					} catch (RemoteException e) {
 						reconnect(RMType.CAR);
 					}
@@ -425,6 +429,7 @@ public class TransactionManager {
 					crashedRMs.remove(RMType.ROOM);
 					try {
 						roomRM.initialize(Constants.ROOM_FILE_PTR);
+						roomRM.recover(t_status);
 					} catch (RemoteException e) {
 						reconnect(RMType.ROOM);
 					}

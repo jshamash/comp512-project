@@ -15,6 +15,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
@@ -26,7 +27,6 @@ import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
 import tools.Serializer;
 import transaction.InvalidTransactionException;
-import transaction.TransactionAbortedException;
 import transaction.TransactionMonitor;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
@@ -883,6 +883,53 @@ public class ResourceManagerImpl implements ResourceManager {
 	@Override
 	public boolean isInitialized() throws RemoteException {
 		return !(this.ptr_filename.isEmpty());
+	}
+	
+	@Override
+	public void recover(HashMap<Integer, TransactionStatus> tm_status) {
+		System.out.println("Recovering RM...");
+
+		for (Integer xid : new HashSet<Integer>(t_status.keySet())) {
+			System.out.println("Found outstanding transaction xid " + xid + ", status is " + t_status.get(xid));
+			switch (t_status.get(xid)) {
+			case ACTIVE:
+				try {
+					abort(xid);
+				} catch (InvalidTransactionException | RemoteException e) {
+					// Impossible that this would happen
+					e.printStackTrace();
+				}
+				break;
+			case UNCERTAIN:
+				System.out.println("Checking this txn's status in TM -- it's " + tm_status.get(xid));
+				switch(tm_status.get(xid)) {
+				case ABORT:
+					try {
+						abort(xid);
+					} catch (RemoteException | InvalidTransactionException e2) {
+						// Impossible
+						e2.printStackTrace();
+					}
+					break;
+				case COMMIT:
+					try {
+						commit(xid);
+					} catch (RemoteException | InvalidTransactionException e1) {
+						// Impossible
+						e1.printStackTrace();
+					}
+					break;
+				default:
+					System.out.println("That's impossible!");
+					break;
+				}
+				break;
+			default:
+				System.out.println("Do nothing");
+				break;
+			}
+		}
+		System.out.println("Done recovering");
 	}
 
 }
