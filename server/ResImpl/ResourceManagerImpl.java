@@ -691,6 +691,12 @@ public class ResourceManagerImpl implements ResourceManager {
 		System.out.println("Preparing");
 		t_monitor.unwatch(xid);
 		
+		
+		// REMOVE ME
+		if (ptr_filename.equals(Constants.FLIGHT_FILE_PTR)) {
+			System.exit(0);
+		}
+		
 		//Begin by storing all committed data into a file
 		// Write to the non-master file
 		
@@ -852,7 +858,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	@Override
 	public boolean crash(String which) throws RemoteException {
-		// TODO Auto-generated method stub
+		// Never called
 		return false;
 	}
 	

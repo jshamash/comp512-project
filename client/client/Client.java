@@ -799,13 +799,14 @@ public class Client {
 				break;
 			
 			case 28:
-				if (arguments.size() > 0) {
+				if (arguments.size() != 2) {
 					obj.wrongNumber();
 					break;
 				}
 				try {
-					System.out.println("Attempting to crash customer RM server.");
-					rm.crash("customer");
+					String servername = obj.getString(arguments.elementAt(1));
+					System.out.println("Attempting to crash " + servername + "RM server.");
+					rm.crash(servername);
 				} catch (RemoteException e) {
 					reconnect(server, port);
 				} catch (Exception e) {
@@ -954,14 +955,8 @@ public class Client {
 			return 26;
 		else if (argument.compareToIgnoreCase("dump") == 0)
 			return 27;
-		else if (argument.compareToIgnoreCase("crashcustomer") == 0)
+		else if (argument.compareToIgnoreCase("crash") == 0)
 			return 28;
-		else if (argument.compareToIgnoreCase("crashflight") == 0)
-			return 29;
-		else if (argument.compareToIgnoreCase("crashcar") == 0)
-			return 30;
-		else if (argument.compareToIgnoreCase("crashroom") == 0)
-			return 31;
 		else
 			return 666; // LOL
 
@@ -1220,36 +1215,12 @@ public class Client {
 			System.out.println("\tdump");
 			break;
 			
-		case 28: // Crash Customer RM server
-			System.out.println("Crash Customer RM server");
+		case 28: // Crash RM server
+			System.out.println("Crash RM server");
 			System.out.println("Purpose:");
-			System.out.println("\tClient is able to crash the server handling customer related requests");
+			System.out.println("\tClient is able to crash the server");
 			System.out.println("\nUsage:");
-			System.out.println("\tcrashflight,<xid>");
-			break;
-			
-		case 29: // Crash Flight RM server
-			System.out.println("Crash Flight RM server");
-			System.out.println("Purpose:");
-			System.out.println("\tClient is able to crash the server handling flight related requests");
-			System.out.println("\nUsage:");
-			System.out.println("\tcrashflight,<xid>");
-			break;
-
-		case 30: // Crash Car RM server
-			System.out.println("Crash Car RM server");
-			System.out.println("Purpose:");
-			System.out.println("\tClient is able to crash the server handling car related requests");
-			System.out.println("\nUsage:");
-			System.out.println("\tcrashflight,<xid>");
-			break;
-			
-		case 31: // Crash Room RM server
-			System.out.println("Crash room RM server");
-			System.out.println("Purpose:");
-			System.out.println("\tClient is able to crash the server handling room related requests");
-			System.out.println("\nUsage:");
-			System.out.println("\tcrashflight,<xid>");
+			System.out.println("\tcrash,<servername>");
 			break;
 
 		default:

@@ -981,8 +981,8 @@ public class Middleware implements ResourceManager {
 	 * @see ResInterface.ResourceManager#shutdown()
 	 */
 	public boolean shutdown() throws RemoteException {
-		boolean success = false;
 		
+		boolean success = false;
 		success = flightRM.shutdown() && roomRM.shutdown() && carRM.shutdown();
 
 		UnicastRemoteObject.unexportObject(this, true);
@@ -1023,10 +1023,30 @@ public class Middleware implements ResourceManager {
 	{
 		//Tells which RM crashes
 		if(which.equals("customer")){
-			//Tricky piece of shizzle mah dizzling broatha!
-			//Yezzzzz :D!
-			
-			shutdown();
+			UnicastRemoteObject.unexportObject(this, true);
+			// Unbind self from the registry
+			Registry registry = LocateRegistry.getRegistry(rmiPort);
+			try {
+				registry.unbind("Group1ResourceManager");
+			} catch (NotBoundException e) {
+				System.out.println("Couldn't unbind self from registry");
+				return false;
+			}
+
+			// Kill process in separate thread in order to let method return
+			new Thread() {
+				@Override
+				public void run() {
+					System.out.print("Shutting down...");
+					try {
+						sleep(2000);
+					} catch (InterruptedException e) {
+						// I don't care
+					}
+					System.out.println("done");
+					System.exit(0);
+				}
+			}.start();
 		}else if(which.equals("flight")){
 			if(!flightRM.shutdown()) return false;
 		}else if(which.equals("car")){
@@ -1035,6 +1055,7 @@ public class Middleware implements ResourceManager {
 		{
 			if(!roomRM.shutdown()) return false;
 		}
+		else { return false; }
 		
 		return true;
 	}

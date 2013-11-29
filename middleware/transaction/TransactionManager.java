@@ -130,7 +130,7 @@ public class TransactionManager {
 			}
 			else {
 				// Some guy couldn't commit
-				System.err.println("Somebody couldn't commit!!!!! wtf do we do!!!");
+				System.err.println("Somebody couldn't commit!!!!!");
 				return true;
 			}
 			
@@ -266,8 +266,11 @@ public class TransactionManager {
 			}
 		}
 		
-		// If we get here, everyone recceived the OK to commit. We can forget about this txn now.
-		serialize();
+		// If we get in here, everyone committed OK. We can forget about this txn now.
+		if (allCommitAcks) {
+			t_status.remove(xid);
+			serialize();
+		}
 		
 		return allCommitAcks;
 	}
@@ -285,13 +288,17 @@ public class TransactionManager {
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
+		boolean allAbortAcks = true;
+		
 		for(RMType i : rm_list){
 			switch(i){
 				case CUSTOMER:
 					System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");
 					try {
 						customerRM.middlewareAbort(xid);
-					} catch (RemoteException e1) {}
+					} catch (RemoteException e1) {
+						allAbortAcks = false;
+					}
 					System.out.println("Successfully aborted transaction "+xid+" from customer RM.");
 					break;
 					
@@ -300,7 +307,9 @@ public class TransactionManager {
 						System.out.println("Attempting to abort transaction "+ xid+ " from car RM.");
 						carRM.abort(xid);
 						System.out.println("Successfully aborted transaction "+xid+" from car RM.");
-					}catch(Exception e){}
+					}catch(Exception e){
+						allAbortAcks = false;
+					}
 					break;
 					
 				case ROOM:
@@ -308,20 +317,27 @@ public class TransactionManager {
 						System.out.println("Attempting to abort transaction "+ xid+ " from room RM.");
 						roomRM.abort(xid);
 						System.out.println("Successfully aborted transaction "+xid+" from room RM.");
-					}catch(Exception e){}
+					}catch(Exception e){
+						allAbortAcks = false;
+					}
 					break;
 				case FLIGHT:
 					try{
 						System.out.println("Attempting to abort transaction "+ xid+ " from flight RM.");
 						flightRM.abort(xid);
 						System.out.println("Successfully aborted transaction "+xid+" from flight RM.");
-					}catch(Exception e){}
+					}catch(Exception e){
+						allAbortAcks = false;
+					}
 					break;
 			}
 		}
 		
-		t_status.remove(xid);
-		serialize();
+		if (allAbortAcks) {
+			// Everyone aborted this txn so we can forget about it
+			t_status.remove(xid);
+			serialize();
+		}
 	}
 	
 	public void recover(TMLogger tm) {
