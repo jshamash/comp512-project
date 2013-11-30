@@ -1,0 +1,11 @@
+start
+newflight,1,1,1,1
+newcar,1,1,1,1
+newroom,1,1,1,1
+commit,1
+crashtm,0
+start
+newflight,2,2,2,2
+newcar,2,2,2,2
+newroom,2,2,2,2
+commit,2

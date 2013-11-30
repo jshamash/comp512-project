@@ -21,6 +21,17 @@ public class Constants {
 		CUSTOMER, CAR, ROOM, FLIGHT
 	}
 
+	public enum CrashPoint {
+		BEFORE_VOTE_REQUEST,
+		AFTER_CAR_REPLY,
+		AFTER_REPLIES_BEFORE_DECISION,
+		AFTER_DECISION_BEFORE_SENDING,
+		AFTER_SENDING_CAR_DECISION,
+		AFTER_SENDING_ALL_DECISIONS_BEFORE_SER,
+		AFTER_SENDING_ALL_DECISIONS_AFTER_SER,
+		NONE
+	}
+
 	public final static String CAR_FILE_PTR = "../resources/cars/cars.ptr";
 	public final static String CAR_FILE_1 = "../resources/cars/cars_1.ser";
 	public final static String CAR_FILE_2 = "../resources/cars/cars_2.ser";

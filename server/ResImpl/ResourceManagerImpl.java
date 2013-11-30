@@ -952,4 +952,10 @@ public class ResourceManagerImpl implements ResourceManager {
 		System.out.println("Done recovering");
 	}
 
+	@Override
+	public void crashTM(int crashPoint) throws RemoteException {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

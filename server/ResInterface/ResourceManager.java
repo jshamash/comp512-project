@@ -178,5 +178,7 @@ public interface ResourceManager extends Remote {
 	public void recover(HashMap<Integer, TransactionStatus> tm_status) throws RemoteException;
 	
 	public void crash() throws RemoteException;
+	
+	public void crashTM(int crashPoint) throws RemoteException;
 
 }

@@ -20,6 +20,7 @@ import persistence.RMLogger;
 import persistence.RMPointerFile;
 import persistence.TMLogger;
 import tools.Constants;
+import tools.Constants.CrashPoint;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import tools.DeepCopy;
@@ -1209,5 +1210,10 @@ public class Middleware implements ResourceManager {
 			}
 		}
 		System.out.println("Done recovering");		
+	}
+
+	@Override
+	public void crashTM(int crashPoint) throws RemoteException {
+		t_manager.setCrashPoint(CrashPoint.values()[crashPoint]);
 	}
 }

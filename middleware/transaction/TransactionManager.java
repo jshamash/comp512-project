@@ -8,6 +8,7 @@ import middleware.Middleware;
 import middleware.RMReconnect;
 import persistence.TMLogger;
 import tools.Constants;
+import tools.Constants.CrashPoint;
 import tools.Constants.RMType;
 import tools.Constants.TransactionStatus;
 import tools.Serializer;
@@ -18,10 +19,11 @@ public class TransactionManager {
 	private int tid_counter;
 	private Middleware customerRM;
 	public static ResourceManager carRM, roomRM, flightRM;
-	protected HashMap<Integer,LinkedList<RMType>> rm_records = new HashMap<Integer,LinkedList<RMType>>();
+	protected static HashMap<Integer,LinkedList<RMType>> rm_records = new HashMap<Integer,LinkedList<RMType>>();
 	private TransactionMonitor t_monitor;
 	
 	private static LinkedList<RMType> crashedRMs = new LinkedList<RMType>();
+	private CrashPoint crashPoint = CrashPoint.NONE;
 	
 	//2PC related variables
 	private static HashMap<Integer, TransactionStatus> t_status = new HashMap<Integer, TransactionStatus>();
@@ -125,9 +127,6 @@ public class TransactionManager {
 			System.out.println("Everyone prepared");
 			assert t_status.get(xid) == TransactionStatus.UNCERTAIN;
 
-			//Crash test
-			//customerRM.crash("car");
-
 			if (commit(xid)) {
 				// Everyone committed
 				return true;
@@ -152,6 +151,15 @@ public class TransactionManager {
 		// Log start of 2PC
 		serialize();
 		
+		if (crashPoint == CrashPoint.BEFORE_VOTE_REQUEST) {
+			try {
+				customerRM.crash();
+			} catch (RemoteException e2) {
+				// TODO Auto-generated catch block
+				e2.printStackTrace();
+			}
+		}
+		
 		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
 		LinkedList<RMType> rm_list = rm_records.get(xid);
 		
@@ -171,6 +179,7 @@ public class TransactionManager {
 			case CAR:
 				try{
 					if(!carRM.prepare(xid)) return false;
+					if (crashPoint == CrashPoint.AFTER_CAR_REPLY) customerRM.crash();
 				}catch(RemoteException e){
 					// carRM crashed -- try to reconnect
 					reconnect(RMType.CAR);
@@ -204,6 +213,14 @@ public class TransactionManager {
 				break;
 			}
 		}
+		if (crashPoint == CrashPoint.AFTER_REPLIES_BEFORE_DECISION) {
+			try {
+				customerRM.crash();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		return true;
 	}
@@ -211,8 +228,9 @@ public class TransactionManager {
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
 	public boolean commit(int xid) throws InvalidTransactionException, TransactionAbortedException{
-		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
-		LinkedList<RMType> rm_list = rm_records.remove(xid);
+
+		LinkedList<RMType> rm_list = rm_records.get(xid);
+		if (rm_list == null) throw new InvalidTransactionException(xid, "No record for this txn in txn manager");
 		
 		t_monitor.unwatch(xid);
 		
@@ -221,6 +239,15 @@ public class TransactionManager {
 		// Log commit record
 		serialize();
 		
+		if (crashPoint == CrashPoint.AFTER_DECISION_BEFORE_SENDING) {
+			try {
+				customerRM.crash();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+				
 		boolean allCommitAcks = true;
 		
 		for(RMType i : rm_list){
@@ -240,6 +267,7 @@ public class TransactionManager {
 						System.out.println("Attempting to commit transaction "+ xid+ " from car RM.");
 						allCommitAcks = allCommitAcks && carRM.commit(xid);
 						System.out.println("Successfully committed transaction "+xid+" from car RM.");
+						if (crashPoint == CrashPoint.AFTER_SENDING_CAR_DECISION) customerRM.crash();
 					} catch(RemoteException e) {
 						allCommitAcks =  false;
 						reconnect(RMType.CAR);
@@ -269,10 +297,29 @@ public class TransactionManager {
 			}
 		}
 		
+		if (crashPoint == CrashPoint.AFTER_SENDING_ALL_DECISIONS_BEFORE_SER) {
+			try {
+				customerRM.crash();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		// If we get in here, everyone committed OK. We can forget about this txn now.
 		if (allCommitAcks) {
+			rm_records.remove(xid);
 			t_status.remove(xid);
 			serialize();
+		}
+		
+		if (crashPoint == CrashPoint.AFTER_SENDING_ALL_DECISIONS_AFTER_SER) {
+			try {
+				customerRM.crash();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		return allCommitAcks;
@@ -281,15 +328,13 @@ public class TransactionManager {
 	//Commit function that checks which RM to call to delete hash table entries from corresponding RMs
 	//This function ensures that we do not have to call abort on all of the RMs
 	public void abort(int xid) throws InvalidTransactionException{
-		if(rm_records.get(xid)==null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
+		LinkedList<RMType> rm_list = rm_records.get(xid);
+		if(rm_list == null) throw new InvalidTransactionException(xid, "Transaction "+ xid+ " does not exist in the Transaction Manager.");
 		
 		t_monitor.unwatch(xid);
 		System.out.println("Aborting transaction "+xid);
 		t_status.put(xid, TransactionStatus.ABORT);
 		serialize();
-		
-		//Both get the correct Hashtable and removes it from the rm_records hashTable --> 2 in 1 baby
-		LinkedList<RMType> rm_list = rm_records.remove(xid);
 		
 		boolean allAbortAcks = true;
 		
@@ -338,6 +383,7 @@ public class TransactionManager {
 		
 		if (allAbortAcks) {
 			// Everyone aborted this txn so we can forget about it
+			rm_records.remove(xid);
 			t_status.remove(xid);
 			serialize();
 		}
@@ -345,7 +391,7 @@ public class TransactionManager {
 	
 	public void recover(TMLogger tm) {
 		System.out.println("Recovering TM...");
-		this.rm_records = tm.getRm_records();
+		TransactionManager.rm_records = tm.getRm_records();
 		TransactionManager.t_status = tm.getT_status();
 		this.tid_counter = tm.getTid_counter();
 		
@@ -393,7 +439,15 @@ public class TransactionManager {
 		}
 		System.out.println("Done recovering");
 		
-		customerRM.recover(t_status);
+		// A list (xid -> status) of all txns this RM is implicated in
+		HashMap<Integer, TransactionStatus> customerTxns = new HashMap<Integer, TransactionStatus>();
+		for (Integer xid : rm_records.keySet()) {
+			if (rm_records.get(xid).contains(RMType.FLIGHT)) {
+				customerTxns.put(xid, t_status.get(xid));
+			}
+		}
+		
+		customerRM.recover(customerTxns);
 	}
 	
 	public static void reconnect(RMType type) {
@@ -411,9 +465,18 @@ public class TransactionManager {
 					Middleware.flightRM = this.getRM();
 					TransactionManager.flightRM = this.getRM();
 					crashedRMs.remove(RMType.FLIGHT);
+					
+					// A list (xid -> status) of all txns this RM is implicated in
+					HashMap<Integer, TransactionStatus> flightTxns = new HashMap<Integer, TransactionStatus>();
+					for (Integer xid : rm_records.keySet()) {
+						if (rm_records.get(xid).contains(RMType.FLIGHT)) {
+							flightTxns.put(xid, t_status.get(xid));
+						}
+					}
+					
 					try {
 						flightRM.initialize(Constants.FLIGHT_FILE_PTR);
-						flightRM.recover(t_status);
+						flightRM.recover(flightTxns);
 					} catch (RemoteException e) {
 						// Yo dawg, i heard you like reconnects....
 						reconnect(RMType.FLIGHT);
@@ -429,9 +492,18 @@ public class TransactionManager {
 					Middleware.carRM = this.getRM();
 					TransactionManager.carRM = this.getRM();
 					crashedRMs.remove(RMType.CAR);
+					
+					// A list (xid -> status) of all txns this RM is implicated in
+					HashMap<Integer, TransactionStatus> carTxns = new HashMap<Integer, TransactionStatus>();
+					for (Integer xid : rm_records.keySet()) {
+						if (rm_records.get(xid).contains(RMType.FLIGHT)) {
+							carTxns.put(xid, t_status.get(xid));
+						}
+					}
+					
 					try {
 						carRM.initialize(Constants.CAR_FILE_PTR);
-						carRM.recover(t_status);
+						carRM.recover(carTxns);
 					} catch (RemoteException e) {
 						reconnect(RMType.CAR);
 					}
@@ -446,9 +518,18 @@ public class TransactionManager {
 					Middleware.roomRM = this.getRM();
 					TransactionManager.roomRM = this.getRM();
 					crashedRMs.remove(RMType.ROOM);
+					
+					// A list (xid -> status) of all txns this RM is implicated in
+					HashMap<Integer, TransactionStatus> roomTxns = new HashMap<Integer, TransactionStatus>();
+					for (Integer xid : rm_records.keySet()) {
+						if (rm_records.get(xid).contains(RMType.FLIGHT)) {
+							roomTxns.put(xid, t_status.get(xid));
+						}
+					}
+					
 					try {
 						roomRM.initialize(Constants.ROOM_FILE_PTR);
-						roomRM.recover(t_status);
+						roomRM.recover(roomTxns);
 					} catch (RemoteException e) {
 						reconnect(RMType.ROOM);
 					}
@@ -468,5 +549,13 @@ public class TransactionManager {
 			System.out.println("Couldn't serialize TM!");
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * @param crashPoint the crashPoint to set
+	 */
+	public void setCrashPoint(CrashPoint crashPoint) {
+		System.out.println("TM will crash at " + crashPoint);
+		this.crashPoint = crashPoint;
 	}
 }

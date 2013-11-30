@@ -12,6 +12,8 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 
 import middleware.RMReconnect;
+import tools.Constants;
+import tools.Constants.CrashPoint;
 import transaction.TransactionAbortedException;
 import ResInterface.ResourceManager;
 
@@ -815,46 +817,16 @@ public class Client {
 					e.printStackTrace();
 				}
 				break;
+			
 			case 29:
-				if (arguments.size() > 0) {
+				if (arguments.size() != 2) {
 					obj.wrongNumber();
 					break;
 				}
 				try {
-					System.out.println("Attempting to crash flight RM server.");
-					rm.crash("flight");
-				} catch (RemoteException e) {
-					reconnect(server, port);
-				} catch (Exception e) {
-					System.out.println("EXCEPTION:");
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-				}
-				break;
-			case 30:
-				if (arguments.size() > 0) {
-					obj.wrongNumber();
-					break;
-				}
-				try {
-					System.out.println("Attempting to crash car RM server.");
-					rm.crash("car");
-				} catch (RemoteException e) {
-					reconnect(server, port);
-				} catch (Exception e) {
-					System.out.println("EXCEPTION:");
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-				}
-				break;
-			case 31:
-				if (arguments.size() > 0) {
-					obj.wrongNumber();
-					break;
-				}
-				try {
-					System.out.println("Attempting to crash room RM server.");
-					rm.crash("room");
+					int crashPoint = obj.getInt(arguments.elementAt(1));
+					System.out.println("Setting crash point to " + Constants.CrashPoint.values()[crashPoint]);
+					rm.crashTM(crashPoint);
 				} catch (RemoteException e) {
 					reconnect(server, port);
 				} catch (Exception e) {
@@ -957,6 +929,8 @@ public class Client {
 			return 27;
 		else if (argument.compareToIgnoreCase("crash") == 0)
 			return 28;
+		else if (argument.compareToIgnoreCase("crashtm") == 0)
+			return 29;
 		else
 			return 666; // LOL
 
@@ -973,7 +947,7 @@ public class Client {
 				.println("deletecustomer\nqueryflight\nquerycar\nqueryroom\nquerycustomer");
 		System.out.println("queryflightprice\nquerycarprice\nqueryroomprice");
 		System.out.println("reserveflight\nreservecar\nreserveroom\nitinerary");
-		System.out.println("start\ncommit\nabort\nshutdown\ndump");
+		System.out.println("start\ncommit\nabort\nshutdown\ndump\ncrash\ncrashtm");
 		System.out.println("quit");
 		System.out
 				.println("\ntype help, <commandname> for detailed info(NOTE the use of comma).");
@@ -1221,6 +1195,18 @@ public class Client {
 			System.out.println("\tClient is able to crash the server");
 			System.out.println("\nUsage:");
 			System.out.println("\tcrash,<servername>");
+			break;
+			
+		case 29: // crash TM at given point
+			System.out.println("Crash TM server / middleware");
+			System.out.println("Purpose:");
+			System.out.println("\tClient is able to crash the server");
+			System.out.println("\nUsage:");
+			System.out.println("\tcrash, <crashpoint>");
+			System.out.println("Crash point can be one of the following:");
+			for (int i = 0; i < CrashPoint.values().length; i++) {
+				System.out.println(i + " - " + CrashPoint.values()[i]);
+			}
 			break;
 
 		default:
