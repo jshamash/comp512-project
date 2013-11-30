@@ -13,7 +13,7 @@ We chose to handle customers in this way because we felt it simplified the archi
 ## Example setup
 
 ```
-cd comp512-project
+cd comp512-project/scripts
 ```
 
 On each server machine:
@@ -38,8 +38,18 @@ On the client machine:
 To test everything locally, run
 
 ```
-cd comp512-project
+cd comp512-project/scripts
 ./testscript
 ```
 
 This will launch three servers, a middleware, and two clients, all running on localhost.
+
+## Scripting
+
+To feed scripts to the client and test everything locally, run
+
+```
+./testscript <path-to-file>
+```
+
+Several example scripts are provided in the folder scripts/tests. For example, the test script "crashtest" adds entries at each RM, commits, adds entries at each RM again, and causes the Transaction Manager to crash before sending a VOTE-REQUEST.

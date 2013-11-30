@@ -6,12 +6,12 @@ public class Constants {
 	 * The amount of time that a participant waits before assuming the
 	 * coordinator has died and it should abort the transaction
 	 */
-	public final static int PARTICIPANT_TIMEOUT_MILLIS = 60000;
+	public final static int PARTICIPANT_TIMEOUT_MILLIS = 90000;
 	/*
 	 * The amount of time the coordinator waits before it assumes client is gone
 	 * and aborts the transaction
 	 */
-	public final static int COORDINATOR_TIMEOUT_MILLIS = 30000;
+	public final static int COORDINATOR_TIMEOUT_MILLIS = 60000;
 
 	public enum TransactionStatus {
 		ACTIVE, UNCERTAIN, COMMIT, ABORT
@@ -21,6 +21,9 @@ public class Constants {
 		CUSTOMER, CAR, ROOM, FLIGHT
 	}
 
+	/*
+	 * Different points in the execution of the TM where a crash can be caused.
+	 */
 	public enum CrashPoint {
 		BEFORE_VOTE_REQUEST,
 		AFTER_CAR_REPLY,
